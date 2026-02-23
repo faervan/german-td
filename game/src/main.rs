@@ -1,3 +1,9 @@
 mod prelude;
 
-fn main() {}
+use crate::prelude::*;
+
+fn main() {
+    App::new()
+    .add_plugins(DefaultPlugins)
+    .run();
+}
