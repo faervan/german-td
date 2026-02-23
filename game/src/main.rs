@@ -1,1 +1,3 @@
+mod prelude;
+
 fn main() {}
