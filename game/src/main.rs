@@ -1,3 +1,4 @@
+mod camera;
 mod prelude;
 
 use crate::prelude::*;
@@ -5,20 +6,9 @@ use crate::prelude::*;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_systems(Startup, (camera, demo))
+        .add_plugins(camera::plugin)
+        .add_systems(Startup, demo)
         .run();
-}
-
-fn camera(mut commands: Commands) {
-    commands.spawn((
-        Camera3d::default(),
-        Transform::from_translation(Vec3 {
-            x: 0.0,
-            y: 100.0,
-            z: 100.0,
-        })
-        .looking_at(Vec3::ZERO, Vec3::Y),
-    ));
 }
 
 fn demo(
