@@ -1,1 +1,18 @@
 pub mod prelude;
+use prelude::*;
+
+mod assets;
+pub fn default_plugins(app: &mut App) {
+    app.add_plugins(assets::plugin);
+}
+
+pub fn asset_plugin() -> AssetPlugin {
+    #[cfg(not(feature = "dev"))]
+    return AssetPlugin::default();
+
+    #[cfg(feature = "dev")]
+    AssetPlugin {
+        file_path: "../assets".to_string(),
+        ..Default::default()
+    }
+}
