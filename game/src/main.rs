@@ -1,10 +1,11 @@
 mod camera;
 mod enemy;
 mod prelude;
+mod tower;
 
 use german_td_core::{asset_plugin, default_plugins};
 
-use crate::{enemy::Enemy, prelude::*};
+use crate::{enemy::Enemy, prelude::*, tower::Tower};
 
 fn main() {
     let mut app = App::new();
@@ -24,6 +25,7 @@ fn main() {
         default_plugins(AppState::Loading),
         camera::plugin,
         enemy::plugin,
+        tower::plugin,
     ));
 
     // Our states
@@ -94,8 +96,23 @@ fn demo(
         }))),
     ));
 
+    // "Enemy"
+    let enemy = commands
+        .spawn((
+            Enemy,
+            Mesh3d(meshes.add(Sphere::new(5.0))),
+            MeshMaterial3d(materials.add(Color::Srgba(Srgba {
+                red: 1.0,
+                green: 0.0,
+                blue: 0.0,
+                alpha: 1.0,
+            }))),
+        ))
+        .id();
+
     // "Tower"
     commands.spawn((
+        Tower::new(enemy, 1.0),
         Mesh3d(meshes.add(Cuboid::new(10.0, 20.0, 10.0))),
         MeshMaterial3d(materials.add(Color::Srgba(Srgba {
             red: 0.0,
@@ -108,17 +125,5 @@ fn demo(
             y: 0.0,
             z: -15.0,
         }),
-    ));
-
-    // "Enemy"
-    commands.spawn((
-        Enemy,
-        Mesh3d(meshes.add(Sphere::new(5.0))),
-        MeshMaterial3d(materials.add(Color::Srgba(Srgba {
-            red: 1.0,
-            green: 0.0,
-            blue: 0.0,
-            alpha: 1.0,
-        }))),
     ));
 }
