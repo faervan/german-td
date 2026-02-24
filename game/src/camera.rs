@@ -166,7 +166,7 @@ fn cursor_grab(mut cursor_options: Single<&mut CursorOptions>) {
     cursor_options.grab_mode = CursorGrabMode::Confined;
 }
 
-fn cursor_ungrab(mut cursor_options: Single<&mut CursorOptions>) {
+fn _cursor_ungrab(mut cursor_options: Single<&mut CursorOptions>) {
     cursor_options.grab_mode = CursorGrabMode::None;
 }
 

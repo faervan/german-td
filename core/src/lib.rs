@@ -2,8 +2,11 @@ pub mod prelude;
 use prelude::*;
 
 mod assets;
-pub fn default_plugins(app: &mut App) {
-    app.add_plugins(assets::plugin);
+
+pub fn default_plugins<STATE: States + Copy>(loading_state: STATE) -> impl Plugin {
+    move |app: &mut App| {
+        app.add_plugins(assets::plugin(loading_state));
+    }
 }
 
 pub fn asset_plugin() -> AssetPlugin {

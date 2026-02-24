@@ -1,3 +1,5 @@
+use bevy::asset::LoadedFolder;
+
 use crate::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
@@ -6,16 +8,16 @@ pub(super) fn plugin(app: &mut App) {
 }
 
 pub fn all_assets_loaded(loader: Res<LoadingAssetHandles>) -> bool {
-    if !loader.loading.is_empty() {
-        dbg!(loader.loading.len());
-    }
-    loader.loading.is_empty()
+    loader.folders.is_empty() && loader.loading.is_empty()
 }
 
 type InsertAssetResource = fn(&mut World, UntypedHandle);
 
 #[derive(Resource, Default)]
 pub struct LoadingAssetHandles {
+    folders: VecDeque<Handle<LoadedFolder>>,
+    loaded_folders: Vec<Handle<LoadedFolder>>,
+
     loading: Vec<(UntypedHandle, InsertAssetResource)>,
 }
 
@@ -23,6 +25,8 @@ pub trait AssetResourceLoader {
     fn load_assets<T>(&mut self) -> &mut Self
     where
         T: Resource + Asset + FromWorld + Send + Sync;
+
+    fn load_folder(&mut self, path: &'static str) -> &mut Self;
 }
 
 impl AssetResourceLoader for App {
@@ -46,11 +50,34 @@ impl AssetResourceLoader for App {
             }));
         self
     }
+
+    fn load_folder(&mut self, path: &'static str) -> &mut Self {
+        let world = self.world_mut();
+        let handle = world.resource::<AssetServer>().load_folder(path);
+        world
+            .resource_mut::<LoadingAssetHandles>()
+            .folders
+            .push_back(handle);
+        self
+    }
 }
 
 fn load_assets(world: &mut World) {
     world.resource_scope(|world, mut loading_handles: Mut<LoadingAssetHandles>| {
         world.resource_scope(|world, asset_server: Mut<AssetServer>| {
+            let mut popped = 0;
+            for i in 0..loading_handles.folders.len() {
+                if asset_server.is_loaded_with_dependencies(&loading_handles.folders[i - popped]) {
+                    let folder = loading_handles.folders.pop_front().unwrap();
+                    popped += 1;
+                    loading_handles.loaded_folders.push(folder);
+                }
+            }
+
+            if !loading_handles.folders.is_empty() {
+                return;
+            }
+
             for i in (0..loading_handles.loading.len()).rev() {
                 if asset_server.is_loaded_with_dependencies(&loading_handles.loading[i].0) {
                     let (handle, insert_fn) = loading_handles.loading.swap_remove(i);
