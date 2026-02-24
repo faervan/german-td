@@ -54,8 +54,8 @@ fn log_loaded_enemies(enemy_lib: EnemyLibrary) {
         "enemies loaded:\n{}",
         enemy_lib
             .entries
-            .keys()
-            .cloned()
+            .values()
+            .map(|v| format!("{v:#?}"))
             .collect::<Vec<_>>()
             .join("\n")
     );
@@ -66,8 +66,8 @@ fn log_loaded_towers(tower_lib: TowerLibrary) {
         "towers loaded:\n{}",
         tower_lib
             .entries
-            .keys()
-            .cloned()
+            .values()
+            .map(|v| format!("{v:#?}"))
             .collect::<Vec<_>>()
             .join("\n")
     );
