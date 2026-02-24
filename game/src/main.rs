@@ -1,9 +1,10 @@
 mod camera;
+mod enemy;
 mod prelude;
 
 use german_td_core::{asset_plugin, default_plugins};
 
-use crate::prelude::*;
+use crate::{enemy::Enemy, prelude::*};
 
 fn main() {
     let mut app = App::new();
@@ -19,7 +20,11 @@ fn main() {
     }));
 
     // Our plugins
-    app.add_plugins((default_plugins(AppState::Loading), camera::plugin));
+    app.add_plugins((
+        default_plugins(AppState::Loading),
+        camera::plugin,
+        enemy::plugin,
+    ));
 
     // Our states
     app.init_state::<AppState>();
@@ -78,11 +83,40 @@ fn demo(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    // Ground
     commands.spawn((
         Mesh3d(meshes.add(Plane3d::new(Vec3::Y, Vec2::new(100.0, 100.0)))),
         MeshMaterial3d(materials.add(Color::Srgba(Srgba {
             red: 0.0,
             green: 1.0,
+            blue: 0.0,
+            alpha: 1.0,
+        }))),
+    ));
+
+    // "Tower"
+    commands.spawn((
+        Mesh3d(meshes.add(Cuboid::new(10.0, 20.0, 10.0))),
+        MeshMaterial3d(materials.add(Color::Srgba(Srgba {
+            red: 0.0,
+            green: 0.0,
+            blue: 1.0,
+            alpha: 1.0,
+        }))),
+        Transform::from_translation(Vec3 {
+            x: 0.0,
+            y: 0.0,
+            z: -15.0,
+        }),
+    ));
+
+    // "Enemy"
+    commands.spawn((
+        Enemy,
+        Mesh3d(meshes.add(Sphere::new(5.0))),
+        MeshMaterial3d(materials.add(Color::Srgba(Srgba {
+            red: 1.0,
+            green: 0.0,
             blue: 0.0,
             alpha: 1.0,
         }))),
