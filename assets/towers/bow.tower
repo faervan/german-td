@@ -1,3 +1,7 @@
 (
-name: "Bow Turret"
+name: "Bow Turret",
+gltf: "models/towers/Bow.glb",
+icon: "icons/towers/Bow.png",
+damage: 5.,
+cost: 10.,
 )

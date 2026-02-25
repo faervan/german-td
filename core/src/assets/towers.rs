@@ -15,21 +15,35 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
 
 #[derive(TypePath, Debug, Serialize, Deserialize)]
 struct TowerAsset {
-    name: String,
+    pub name: String,
+    pub gltf: String,
+    pub icon: String,
+    pub damage: f32,
+    pub cost: f32,
 }
 
 #[derive(Asset, Reflect, Debug)]
 #[reflect(Asset)]
 pub struct TowerDefinition {
-    name: String,
+    pub name: String,
+    pub gltf: Handle<Gltf>,
+    pub icon: Handle<Image>,
+    pub damage: f32,
+    pub cost: f32,
 }
 
 impl RonAsset for TowerAsset {
     type Asset = TowerDefinition;
     const EXTENSION: &str = "tower";
 
-    async fn load_dependencies(self, _context: &mut bevy::asset::LoadContext<'_>) -> Self::Asset {
-        TowerDefinition { name: self.name }
+    async fn load_dependencies(self, context: &mut bevy::asset::LoadContext<'_>) -> Self::Asset {
+        TowerDefinition {
+            name: self.name,
+            gltf: context.load(self.gltf),
+            icon: context.load(self.icon),
+            damage: self.damage,
+            cost: self.cost,
+        }
     }
 }
 

@@ -15,21 +15,25 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
 
 #[derive(TypePath, Debug, Serialize, Deserialize)]
 struct EnemyAsset {
-    name: String,
-    gltf: String,
-    icon: String,
-    damage: f32,
-    walk_speed: f32,
+    pub name: String,
+    pub gltf: String,
+    pub icon: String,
+    pub damage: f32,
+    pub walk_speed: f32,
+    pub health: f32,
+    pub drop: f32,
 }
 
 #[derive(Asset, Reflect, Debug)]
 #[reflect(Asset)]
 pub struct EnemyDefinition {
-    name: String,
-    gltf: Handle<Gltf>,
-    icon: Handle<Image>,
-    damage: f32,
-    walk_speed: f32,
+    pub name: String,
+    pub gltf: Handle<Gltf>,
+    pub icon: Handle<Image>,
+    pub damage: f32,
+    pub walk_speed: f32,
+    pub health: f32,
+    pub drop: f32,
 }
 
 impl RonAsset for EnemyAsset {
@@ -43,6 +47,8 @@ impl RonAsset for EnemyAsset {
             icon: context.load(self.icon),
             damage: self.damage,
             walk_speed: self.walk_speed,
+            health: self.health,
+            drop: self.drop,
         }
     }
 }

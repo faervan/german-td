@@ -4,4 +4,6 @@ gltf: "models/enemies/Knight.glb",
 icon: "icons/enemies/Knight.png",
 damage: 5.,
 walk_speed: 10.,
+health: 50.,
+drop: 3.,
 )
