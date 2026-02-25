@@ -11,6 +11,9 @@ pub fn on_ready_insert_animation_target(
 
     // Search for an [`AnimationPlayer`] and assume the first one found is the armature we want
     'outer: loop {
+        if current.is_empty() {
+            break;
+        }
         for entity in std::mem::take(&mut current) {
             if let Ok((children_maybe, has_player)) = query.get(entity) {
                 if has_player {

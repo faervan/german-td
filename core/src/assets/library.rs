@@ -45,5 +45,6 @@ impl LibraryInitExt for App {
 }
 
 pub trait AssetLoadedHook {
-    fn on_loaded_hook(&mut self, _world: &mut World) {}
+    #[allow(unused)]
+    fn on_loaded_hook(&mut self, world: &mut World) {}
 }

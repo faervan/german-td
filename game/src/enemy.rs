@@ -4,10 +4,6 @@ pub(crate) fn plugin(app: &mut App) {
     app.add_systems(Update, enemy_ai);
 }
 
-#[derive(Debug, Default, Component, Reflect)]
-#[reflect(Component)]
-pub struct Enemy;
-
 fn enemy_ai(
     time: Res<Time>,
     mut transforms: Query<&mut Transform, With<Enemy>>,

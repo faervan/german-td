@@ -1,11 +1,10 @@
 mod camera;
 mod enemy;
 mod prelude;
-mod tower;
 
 use german_td_core::{asset_plugin, default_plugins};
 
-use crate::{enemy::Enemy, prelude::*, tower::Tower};
+use crate::prelude::*;
 
 fn main() {
     let mut app = App::new();
@@ -25,7 +24,6 @@ fn main() {
         default_plugins(AppState::Loading, AppState::Game),
         camera::plugin,
         enemy::plugin,
-        tower::plugin,
     ));
 
     // Our states
@@ -86,12 +84,10 @@ fn demo(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     enemy_lib: EnemyLibrary,
-    mut spawner: MessageWriter<SpawnEnemy>,
+    tower_lib: TowerLibrary,
+    mut enemy_spawner: MessageWriter<SpawnEnemy>,
+    mut tower_spawner: MessageWriter<SpawnTower>,
 ) {
-    spawner.write(SpawnEnemy {
-        position: Vec3::new(0., 0.5, 0.),
-        definition: enemy_lib.entries["Knight"].clone(),
-    });
     // Ground
     commands.spawn((
         Mesh3d(meshes.add(Plane3d::new(Vec3::Y, Vec2::new(100.0, 100.0)))),
@@ -103,36 +99,17 @@ fn demo(
         }))),
     ));
 
-    // "Enemy"
-    let enemy = commands
-        .spawn((
-            Enemy,
-            Mesh3d(meshes.add(Sphere::new(5.0))),
-            MeshMaterial3d(materials.add(Color::Srgba(Srgba {
-                red: 1.0,
-                green: 0.0,
-                blue: 0.0,
-                alpha: 1.0,
-            }))),
-        ))
-        .id();
+    // Enemy
+    enemy_spawner.write(SpawnEnemy {
+        position: Vec3::new(0., 0.5, 0.),
+        definition: enemy_lib.entries["Knight"].clone(),
+    });
 
     // "Tower"
-    commands.spawn((
-        Tower::new(enemy, 1.0),
-        Mesh3d(meshes.add(Cuboid::new(10.0, 20.0, 10.0))),
-        MeshMaterial3d(materials.add(Color::Srgba(Srgba {
-            red: 0.0,
-            green: 0.0,
-            blue: 1.0,
-            alpha: 1.0,
-        }))),
-        Transform::from_translation(Vec3 {
-            x: 0.0,
-            y: 0.0,
-            z: -15.0,
-        }),
-    ));
+    tower_spawner.write(SpawnTower {
+        position: Vec3::new(0., 0., -15.),
+        definition: tower_lib.entries["Bow Turret"].clone(),
+    });
 }
 
 fn enemy_ctrl(input: Res<ButtonInput<KeyCode>>, mut controllers: Query<&mut EnemyController>) {

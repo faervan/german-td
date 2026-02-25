@@ -23,3 +23,4 @@ pub use crate::assets::towers::TowerDefinition;
 
 pub use crate::components::*;
 pub use crate::enemy::*;
+pub use crate::tower::*;

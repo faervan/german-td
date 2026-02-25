@@ -1,7 +1,20 @@
-use crate::prelude::*;
+use crate::{prelude::*, utils::on_ready_insert_animation_target};
 
-pub(crate) fn plugin(app: &mut App) {
-    app.add_systems(Update, (attack_tower_target, move_projectile));
+pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
+    move |app: &mut App| {
+        app.add_message::<SpawnTower>();
+
+        app.add_systems(
+            Update,
+            (
+                spawn_towers.run_if(on_message::<SpawnTower>),
+                search_tower_target,
+                attack_tower_target,
+                move_projectile,
+            )
+                .run_if(in_state(game_state)),
+        );
+    }
 }
 
 #[derive(Debug, Component, Reflect)]
@@ -11,17 +24,34 @@ pub struct Tower {
     attack_timer: Timer,
 }
 
-impl Tower {
-    // TODO: Remove target from here; just for testing
-    pub fn new(target: Entity, attack_speed: f32) -> Self {
-        /* Star finished */
-        let mut attack_timer = Timer::from_seconds(attack_speed, TimerMode::Repeating);
-        attack_timer.finish();
+#[derive(Message, Debug)]
+pub struct SpawnTower {
+    pub position: Vec3,
+    pub definition: Handle<TowerDefinition>,
+}
 
-        Self {
-            target: Some(target),
-            attack_timer,
-        }
+fn spawn_towers(
+    mut events: MessageReader<SpawnTower>,
+    mut commands: Commands,
+    definitions: Res<Assets<TowerDefinition>>,
+) {
+    for spawn in events.read() {
+        let def = definitions.get(&spawn.definition).unwrap();
+        info!("Spawning tower {} at {:?}", def.name, spawn.position);
+
+        let mut attack_timer = Timer::new(def.attack_duration, TimerMode::Repeating);
+        attack_timer.finish();
+        commands
+            .spawn((
+                Name::new(format!("Tower: {}", def.name)),
+                Transform::from_translation(spawn.position),
+                SceneRoot(def.scene.clone()),
+                Tower {
+                    target: None,
+                    attack_timer,
+                },
+            ))
+            .observe(on_ready_insert_animation_target);
     }
 }
 
@@ -62,7 +92,13 @@ fn move_projectile(
 
 // TODO: This can probably be moved into collision event hooks?
 // Sets the target of the Tower Component
-fn _search_tower_target() {}
+fn search_tower_target(towers: Query<&mut Tower>, enemies: Query<Entity, With<Enemy>>) {
+    for mut tower in towers {
+        if tower.target.is_none() {
+            tower.target = enemies.iter().next();
+        }
+    }
+}
 
 // TODO: Move out spawning of projectile
 fn attack_tower_target(

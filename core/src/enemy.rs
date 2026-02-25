@@ -6,7 +6,11 @@ pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
 
         app.add_systems(
             Update,
-            (spawn_enemies, manage_controllers).run_if(in_state(game_state)),
+            (
+                spawn_enemies.run_if(on_message::<SpawnEnemy>),
+                manage_controllers,
+            )
+                .run_if(in_state(game_state)),
         );
     }
 }
