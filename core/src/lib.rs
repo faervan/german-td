@@ -2,7 +2,9 @@ pub mod prelude;
 use prelude::*;
 
 mod assets;
-pub mod enemy;
+mod components;
+mod enemy;
+pub mod utils;
 
 pub fn default_plugins<STATE: States + Copy>(
     loading_state: STATE,

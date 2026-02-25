@@ -95,7 +95,6 @@ impl AssetLoadedHook for EnemyDefinition {
         }
 
         if !named_clips.is_empty() {
-            dbg!("getting", named_clips.len(), "animations");
             let (names, clips): (Vec<_>, Vec<_>) = named_clips.into_iter().unzip();
             let (graph, indices) = AnimationGraph::from_clips(clips);
 
@@ -110,6 +109,34 @@ impl AssetLoadedHook for EnemyDefinition {
                     _ => warn!("Unknown animation name: {name}"),
                 }
             }
+        }
+
+        if let Some(scene_world) = world
+            .resource_mut::<Assets<Scene>>()
+            .get_mut(&self.scene)
+            .map(|scene| &mut scene.world)
+            && let Some(graph) = &self.graph
+        {
+            let mut query = scene_world.query_filtered::<Entity, With<AnimationPlayer>>();
+            let animation_players = query.iter(scene_world).collect::<Vec<_>>();
+
+            #[cfg(feature = "dev_native")]
+            if animation_players.len() != 1 {
+                warn!(
+                    "Gltf scene of {} has {} AnimationPlayers, but exactly 1 was expected",
+                    self.name,
+                    animation_players.len()
+                );
+            }
+
+            for animation_player in animation_players {
+                scene_world.commands().entity(animation_player).insert((
+                    AnimationGraphHandle(graph.clone()),
+                    AnimationTransitions::new(),
+                ));
+            }
+
+            scene_world.flush();
         }
     }
 }

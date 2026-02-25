@@ -21,4 +21,5 @@ pub use crate::assets::all_assets_loaded;
 pub use crate::assets::enemies::EnemyDefinition;
 pub use crate::assets::towers::TowerDefinition;
 
+pub use crate::components::*;
 pub use crate::enemy::*;

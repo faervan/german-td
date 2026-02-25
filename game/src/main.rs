@@ -37,6 +37,7 @@ fn main() {
     app.add_systems(OnEnter(AppState::Game), demo);
     app.add_systems(OnEnter(AppState::Game), log_loaded_enemies);
     app.add_systems(OnEnter(AppState::Game), log_loaded_towers);
+    app.add_systems(Update, enemy_ctrl.run_if(in_state(AppState::Game)));
 
     app.run();
 }
@@ -96,4 +97,30 @@ fn demo(
             alpha: 1.0,
         }))),
     ));
+}
+
+fn enemy_ctrl(input: Res<ButtonInput<KeyCode>>, mut controllers: Query<&mut EnemyController>) {
+    if input.just_pressed(KeyCode::KeyH) {
+        for mut controller in &mut controllers {
+            if !controller.attack() {
+                warn!("Already attacking!");
+            }
+        }
+    }
+
+    if input.just_pressed(KeyCode::KeyJ) {
+        for mut controller in &mut controllers {
+            if !controller.start_moving() {
+                warn!("Already moving!");
+            }
+        }
+    }
+
+    if input.just_pressed(KeyCode::KeyK) {
+        for mut controller in &mut controllers {
+            if !controller.stop_moving() {
+                warn!("Not moving currently!");
+            }
+        }
+    }
 }
