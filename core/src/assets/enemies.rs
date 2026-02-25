@@ -19,6 +19,7 @@ struct EnemyAsset {
     pub gltf: String,
     pub icon: String,
     pub damage: f32,
+    pub attack_duration_ms: u64,
     pub walk_speed: f32,
     pub health: f32,
     pub drop: f32,
@@ -33,8 +34,10 @@ struct EnemyAsset {
 pub struct EnemyDefinition {
     pub name: String,
     pub gltf: Handle<Gltf>,
+    pub scene: Handle<Scene>,
     pub icon: Handle<Image>,
     pub damage: f32,
+    pub attack_duration: Duration,
     pub walk_speed: f32,
     pub health: f32,
     pub drop: f32,
@@ -42,7 +45,7 @@ pub struct EnemyDefinition {
     pub idle_animation: Option<Result<AnimationNodeIndex, String>>,
     pub walk_animation: Option<Result<AnimationNodeIndex, String>>,
     pub attack_animation: Option<Result<AnimationNodeIndex, String>>,
-    pub graph: Option<AnimationGraph>,
+    pub graph: Option<Handle<AnimationGraph>>,
 }
 
 impl RonAsset for EnemyAsset {
@@ -53,8 +56,10 @@ impl RonAsset for EnemyAsset {
         EnemyDefinition {
             name: self.name,
             gltf: context.load(self.gltf),
+            scene: Default::default(),
             icon: context.load(self.icon),
             damage: self.damage,
+            attack_duration: Duration::from_millis(self.attack_duration_ms),
             walk_speed: self.walk_speed,
             health: self.health,
             drop: self.drop,
@@ -76,6 +81,8 @@ impl AssetNameExt for EnemyDefinition {
 impl AssetLoadedHook for EnemyDefinition {
     fn on_loaded_hook(&mut self, world: &mut World) {
         let gltf = world.resource::<Assets<Gltf>>().get(&self.gltf).unwrap();
+        self.scene = gltf.default_scene.clone().expect("Missing default scene");
+
         let mut named_clips = HashMap::new();
         for animation in [
             &self.idle_animation,
@@ -91,7 +98,9 @@ impl AssetLoadedHook for EnemyDefinition {
             dbg!("getting", named_clips.len(), "animations");
             let (names, clips): (Vec<_>, Vec<_>) = named_clips.into_iter().unzip();
             let (graph, indices) = AnimationGraph::from_clips(clips);
-            self.graph = Some(graph);
+
+            let asset_server = world.resource::<AssetServer>();
+            self.graph = Some(asset_server.add(graph));
 
             for (name, index) in names.into_iter().zip(indices) {
                 match name.as_str() {

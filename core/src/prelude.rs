@@ -20,3 +20,5 @@ pub use crate::assets::LibraryInitExt as _;
 pub use crate::assets::all_assets_loaded;
 pub use crate::assets::enemies::EnemyDefinition;
 pub use crate::assets::towers::TowerDefinition;
+
+pub use crate::enemy::*;

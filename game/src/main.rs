@@ -19,7 +19,10 @@ fn main() {
     }));
 
     // Our plugins
-    app.add_plugins((default_plugins(AppState::Loading), camera::plugin));
+    app.add_plugins((
+        default_plugins(AppState::Loading, AppState::Game),
+        camera::plugin,
+    ));
 
     // Our states
     app.init_state::<AppState>();
@@ -77,7 +80,13 @@ fn demo(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    enemy_lib: EnemyLibrary,
+    mut spawner: MessageWriter<SpawnEnemy>,
 ) {
+    spawner.write(SpawnEnemy {
+        position: Vec3::new(0., 0.5, 0.),
+        definition: enemy_lib.entries["Knight"].clone(),
+    });
     commands.spawn((
         Mesh3d(meshes.add(Plane3d::new(Vec3::Y, Vec2::new(100.0, 100.0)))),
         MeshMaterial3d(materials.add(Color::Srgba(Srgba {
