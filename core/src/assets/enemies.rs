@@ -1,5 +1,5 @@
 use crate::{
-    assets::{AssetNameExt, RonAsset, RonAssetLoader},
+    assets::{AssetLoadedHook, AssetNameExt, RonAsset, RonAssetLoader},
     prelude::*,
 };
 
@@ -22,6 +22,10 @@ struct EnemyAsset {
     pub walk_speed: f32,
     pub health: f32,
     pub drop: f32,
+    // animations
+    pub idle_animation: Option<String>,
+    pub walk_animation: Option<String>,
+    pub attack_animation: Option<String>,
 }
 
 #[derive(Asset, Reflect, Debug)]
@@ -34,6 +38,11 @@ pub struct EnemyDefinition {
     pub walk_speed: f32,
     pub health: f32,
     pub drop: f32,
+    // animations
+    pub idle_animation: Option<Result<AnimationNodeIndex, String>>,
+    pub walk_animation: Option<Result<AnimationNodeIndex, String>>,
+    pub attack_animation: Option<Result<AnimationNodeIndex, String>>,
+    pub graph: Option<AnimationGraph>,
 }
 
 impl RonAsset for EnemyAsset {
@@ -49,6 +58,11 @@ impl RonAsset for EnemyAsset {
             walk_speed: self.walk_speed,
             health: self.health,
             drop: self.drop,
+            // animations
+            idle_animation: self.idle_animation.map(Err),
+            walk_animation: self.walk_animation.map(Err),
+            attack_animation: self.attack_animation.map(Err),
+            graph: None,
         }
     }
 }
@@ -56,5 +70,37 @@ impl RonAsset for EnemyAsset {
 impl AssetNameExt for EnemyDefinition {
     fn get_name(&self) -> String {
         self.name.clone()
+    }
+}
+
+impl AssetLoadedHook for EnemyDefinition {
+    fn on_loaded_hook(&mut self, world: &mut World) {
+        let gltf = world.resource::<Assets<Gltf>>().get(&self.gltf).unwrap();
+        let mut named_clips = HashMap::new();
+        for animation in [
+            &self.idle_animation,
+            &self.walk_animation,
+            &self.attack_animation,
+        ] {
+            if let Some(Err(name)) = animation {
+                named_clips.insert(name.clone(), gltf.named_animations[name.as_str()].clone());
+            }
+        }
+
+        if !named_clips.is_empty() {
+            dbg!("getting", named_clips.len(), "animations");
+            let (names, clips): (Vec<_>, Vec<_>) = named_clips.into_iter().unzip();
+            let (graph, indices) = AnimationGraph::from_clips(clips);
+            self.graph = Some(graph);
+
+            for (name, index) in names.into_iter().zip(indices) {
+                match name.as_str() {
+                    "Idle" => self.idle_animation = Some(Ok(index)),
+                    "Walk" => self.walk_animation = Some(Ok(index)),
+                    "Attack" => self.attack_animation = Some(Ok(index)),
+                    _ => warn!("Unknown animation name: {name}"),
+                }
+            }
+        }
     }
 }

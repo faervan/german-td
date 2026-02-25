@@ -1,5 +1,5 @@
 use crate::{
-    assets::{AssetNameExt, RonAsset, RonAssetLoader},
+    assets::{AssetLoadedHook, AssetNameExt, RonAsset, RonAssetLoader},
     prelude::*,
 };
 
@@ -52,3 +52,5 @@ impl AssetNameExt for TowerDefinition {
         self.name.clone()
     }
 }
+
+impl AssetLoadedHook for TowerDefinition {}

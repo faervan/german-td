@@ -49,25 +49,25 @@ fn set_game_state(mut next_state: ResMut<NextState<AppState>>) {
     next_state.set(AppState::Game);
 }
 
-fn log_loaded_enemies(enemy_lib: EnemyLibrary) {
+fn log_loaded_enemies(enemy_lib: EnemyLibrary, enemies: Res<Assets<EnemyDefinition>>) {
     info!(
         "enemies loaded:\n{}",
         enemy_lib
             .entries
             .values()
-            .map(|v| format!("{v:#?}"))
+            .map(|v| format!("{:#?}", enemies.get(v)))
             .collect::<Vec<_>>()
             .join("\n")
     );
 }
 
-fn log_loaded_towers(tower_lib: TowerLibrary) {
+fn log_loaded_towers(tower_lib: TowerLibrary, towers: Res<Assets<TowerDefinition>>) {
     info!(
         "towers loaded:\n{}",
         tower_lib
             .entries
             .values()
-            .map(|v| format!("{v:#?}"))
+            .map(|v| format!("{:#?}", towers.get(v)))
             .collect::<Vec<_>>()
             .join("\n")
     );
