@@ -2,7 +2,16 @@ use crate::prelude::*;
 
 pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
     move |app: &mut App| {
-        app.add_systems(Update, (move_projectile,).run_if(in_state(game_state)));
+        app.add_message::<SpawnProjectile>();
+
+        app.add_systems(
+            Update,
+            (
+                spawn_projectile.run_if(on_message::<SpawnProjectile>),
+                move_projectile,
+            )
+                .run_if(in_state(game_state)),
+        );
     }
 }
 
@@ -12,9 +21,37 @@ pub struct Projectile {
     target: Entity,
 }
 
-impl Projectile {
-    pub fn new(target: Entity) -> Self {
-        Self { target }
+#[derive(Message, Debug)]
+pub struct SpawnProjectile {
+    pub position: Vec3,
+    pub target: Entity,
+    pub definition: Handle<ProjectileDefinition>,
+}
+
+fn spawn_projectile(
+    mut events: MessageReader<SpawnProjectile>,
+    mut commands: Commands,
+    definitions: Res<Assets<ProjectileDefinition>>,
+) {
+    for spawn in events.read() {
+        let def = definitions.get(&spawn.definition).unwrap();
+        info!(
+            "Spawning projectile {} at {:?} with target {:?}",
+            def.name, spawn.position, spawn.target
+        );
+
+        commands.spawn((
+            Name::new(format!("Projectile: {}", def.name)),
+            Transform::from_translation(spawn.position),
+            SceneRoot(def.scene.clone()),
+            Projectile {
+                target: spawn.target,
+            },
+            // Physics
+            RigidBody::Kinematic,
+            Collider::cylinder(0.3, 1.5),
+            GravityScale(0.),
+        ));
     }
 }
 

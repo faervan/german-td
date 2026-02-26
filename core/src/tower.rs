@@ -64,33 +64,22 @@ fn search_tower_target(towers: Query<&mut Tower>, enemies: Query<Entity, With<En
     }
 }
 
-// TODO: Move out spawning of projectile
 fn attack_tower_target(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     time: Res<Time>,
+    mut projectile_spawner: MessageWriter<SpawnProjectile>,
     mut towers: Query<(&mut Tower, &Transform)>,
+    /* TODO: Remove, get from tower somehow */ projectile_lib: ProjectileLibrary,
 ) {
     for (mut tower, transform) in &mut towers {
         if tower.attack_timer.is_finished()
             && let Some(target) = tower.target
         {
-            commands.spawn((
-                Projectile::new(target),
-                Mesh3d(meshes.add(Cuboid::from_length(3.0))),
-                MeshMaterial3d(materials.add(Color::Srgba(Srgba {
-                    red: 1.0,
-                    green: 1.0,
-                    blue: 0.0,
-                    alpha: 1.0,
-                }))),
-                *transform,
-                // Physics
-                RigidBody::Kinematic,
-                Collider::cylinder(0.3, 1.5),
-                GravityScale(0.),
-            ));
+            /* TODO: Do not hard code this to arrow */
+            projectile_spawner.write(SpawnProjectile {
+                position: transform.translation,
+                target,
+                definition: projectile_lib.entries["Arrow"].clone(),
+            });
         }
 
         // tick timer
