@@ -1,0 +1,6 @@
+(
+name: "Arrow",
+gltf: "models/enemies/Knight.glb",
+icon: "icons/enemies/Knight.png",
+damage: 5.,
+)

@@ -11,6 +11,7 @@ pub use library::*;
 
 pub(crate) mod enemies;
 pub(crate) mod maps;
+pub(crate) mod projectile;
 pub(crate) mod towers;
 
 pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin {
@@ -20,6 +21,7 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
             enemies::plugin(loading_state),
             maps::plugin(loading_state),
             towers::plugin(loading_state),
+            projectile::plugin(loading_state),
         ));
     }
 }

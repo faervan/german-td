@@ -5,6 +5,7 @@ mod assets;
 mod components;
 mod enemy;
 mod maps;
+mod projectile;
 mod skein_spawners;
 mod tower;
 pub mod utils;
@@ -22,6 +23,7 @@ pub fn default_plugins<STATE: States + Copy>(
             enemy::plugin(game_state),
             maps::plugin(game_state),
             tower::plugin(game_state),
+            projectile::plugin(game_state),
         ));
     }
 }
