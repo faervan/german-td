@@ -33,7 +33,7 @@ pub struct ProjectileDefinition {
 
 impl RonAsset for ProjectileAsset {
     type Asset = ProjectileDefinition;
-    const EXTENSION: &str = "tower";
+    const EXTENSION: &str = "projectile";
 
     async fn load_dependencies(self, context: &mut bevy::asset::LoadContext<'_>) -> Self::Asset {
         ProjectileDefinition {
