@@ -4,6 +4,7 @@ use prelude::*;
 mod assets;
 mod components;
 mod enemy;
+mod maps;
 mod tower;
 pub mod utils;
 
@@ -15,6 +16,7 @@ pub fn default_plugins<STATE: States + Copy>(
         app.add_plugins((
             assets::plugin(loading_state),
             enemy::plugin(game_state),
+            maps::plugin(game_state),
             tower::plugin(game_state),
         ));
     }
