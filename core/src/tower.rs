@@ -62,20 +62,22 @@ pub struct Projectile {
 }
 
 // Moves the projectile to the target
-// TODO: Physics, rotation, split out despawn to get rid of commands
+// TODO: split out despawn to get rid of commands
 fn move_projectile(
     mut commands: Commands,
-    time: Res<Time>,
-    mut projectile_transforms: Query<(Entity, &mut Transform, &Projectile)>,
+    mut projectile_transforms: Query<(Entity, &mut Transform, &mut LinearVelocity, &Projectile)>,
     other_transforms: Query<&Transform, Without<Projectile>>,
 ) {
-    for (entity, mut projectile_transform, projectile) in &mut projectile_transforms {
+    for (entity, mut projectile_transform, mut projectile_velocity, projectile) in
+        &mut projectile_transforms
+    {
         let mut despawn = false;
 
         if let Ok(target_transform) = other_transforms.get(projectile.target) {
             let direction = target_transform.translation - projectile_transform.translation;
 
-            projectile_transform.translation += direction.normalize() * 25.0 * time.delta_secs();
+            projectile_transform.look_at(target_transform.translation, Vec3::Y);
+            projectile_velocity.0 = direction.normalize() * 30.0;
 
             if direction.length() < 1.0 {
                 despawn = true;
@@ -122,6 +124,10 @@ fn attack_tower_target(
                     alpha: 1.0,
                 }))),
                 *transform,
+                // Physics
+                RigidBody::Kinematic,
+                Collider::cylinder(0.3, 1.5),
+                GravityScale(0.),
             ));
         }
 
