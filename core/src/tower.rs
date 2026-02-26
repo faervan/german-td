@@ -10,7 +10,6 @@ pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
                 spawn_towers.run_if(on_message::<SpawnTower>),
                 search_tower_target,
                 attack_tower_target,
-                move_projectile,
             )
                 .run_if(in_state(game_state)),
         );
@@ -55,43 +54,6 @@ fn spawn_towers(
     }
 }
 
-#[derive(Debug, Component, Reflect)]
-#[reflect(Component)]
-pub struct Projectile {
-    target: Entity,
-}
-
-// Moves the projectile to the target
-// TODO: split out despawn to get rid of commands
-fn move_projectile(
-    mut commands: Commands,
-    mut projectile_transforms: Query<(Entity, &mut Transform, &mut LinearVelocity, &Projectile)>,
-    other_transforms: Query<&Transform, Without<Projectile>>,
-) {
-    for (entity, mut projectile_transform, mut projectile_velocity, projectile) in
-        &mut projectile_transforms
-    {
-        let mut despawn = false;
-
-        if let Ok(target_transform) = other_transforms.get(projectile.target) {
-            let direction = target_transform.translation - projectile_transform.translation;
-
-            projectile_transform.look_at(target_transform.translation, Vec3::Y);
-            projectile_velocity.0 = direction.normalize() * 30.0;
-
-            if direction.length() < 1.0 {
-                despawn = true;
-            }
-        } else {
-            despawn = true;
-        }
-
-        if despawn {
-            commands.entity(entity).despawn();
-        }
-    }
-}
-
 // TODO: This can probably be moved into collision event hooks?
 // Sets the target of the Tower Component
 fn search_tower_target(towers: Query<&mut Tower>, enemies: Query<Entity, With<Enemy>>) {
@@ -115,7 +77,7 @@ fn attack_tower_target(
             && let Some(target) = tower.target
         {
             commands.spawn((
-                Projectile { target },
+                Projectile::new(target),
                 Mesh3d(meshes.add(Cuboid::from_length(3.0))),
                 MeshMaterial3d(materials.add(Color::Srgba(Srgba {
                     red: 1.0,

@@ -14,15 +14,19 @@ pub type EnemyLibrary<'a> =
     Res<'a, crate::assets::AssetLibrary<crate::assets::enemies::EnemyDefinition>>;
 pub type TowerLibrary<'a> =
     Res<'a, crate::assets::AssetLibrary<crate::assets::towers::TowerDefinition>>;
+pub type ProjectileLibrary<'a> =
+    Res<'a, crate::assets::AssetLibrary<crate::assets::projectile::ProjectileDefinition>>;
 
 pub use crate::assets::AssetResourceLoader as _;
 pub use crate::assets::LibraryInitExt as _;
 pub use crate::assets::all_assets_loaded;
 pub use crate::assets::enemies::EnemyDefinition;
+pub use crate::assets::projectile::ProjectileDefinition;
 pub use crate::assets::towers::TowerDefinition;
 
 pub use crate::components::*;
 pub use crate::enemy::*;
+pub use crate::projectile::*;
 pub use crate::tower::*;
 
 #[cfg(feature = "dev_native")]

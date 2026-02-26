@@ -10,6 +10,7 @@ mod library;
 pub use library::*;
 
 pub mod enemies;
+pub mod projectile;
 pub mod towers;
 
 pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin {
@@ -18,6 +19,7 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
             resource_loader::plugin,
             enemies::plugin(loading_state),
             towers::plugin(loading_state),
+            projectile::plugin(loading_state),
         ));
     }
 }
