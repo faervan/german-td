@@ -1,0 +1,8 @@
+(
+name: "First",
+gltf: "models/maps/First.glb",
+icon: "icons/maps/First.png",
+waypoints: [],
+paths: [],
+tower_plots: [],
+)

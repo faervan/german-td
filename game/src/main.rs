@@ -38,6 +38,7 @@ fn main() {
     // Test systems
     app.add_systems(OnEnter(AppState::Game), demo);
     app.add_systems(OnEnter(AppState::Game), log_loaded_enemies);
+    app.add_systems(OnEnter(AppState::Game), log_loaded_maps);
     app.add_systems(OnEnter(AppState::Game), log_loaded_towers);
     app.add_systems(Update, enemy_ctrl.run_if(in_state(AppState::Game)));
 
@@ -67,6 +68,18 @@ fn log_loaded_enemies(enemy_lib: EnemyLibrary, enemies: Res<Assets<EnemyDefiniti
     );
 }
 
+fn log_loaded_maps(map_lib: MapLibrary, maps: Res<Assets<MapDefinition>>) {
+    info!(
+        "maps loaded:\n{}",
+        map_lib
+            .entries
+            .values()
+            .map(|v| format!("{:#?}", maps.get(v)))
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+}
+
 fn log_loaded_towers(tower_lib: TowerLibrary, towers: Res<Assets<TowerDefinition>>) {
     info!(
         "towers loaded:\n{}",
@@ -80,24 +93,17 @@ fn log_loaded_towers(tower_lib: TowerLibrary, towers: Res<Assets<TowerDefinition
 }
 
 fn demo(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     enemy_lib: EnemyLibrary,
+    map_lib: MapLibrary,
     tower_lib: TowerLibrary,
     mut enemy_spawner: MessageWriter<SpawnEnemy>,
+    mut map_spawner: MessageWriter<SpawnMap>,
     mut tower_spawner: MessageWriter<SpawnTower>,
 ) {
-    // Ground
-    commands.spawn((
-        Mesh3d(meshes.add(Plane3d::new(Vec3::Y, Vec2::new(100.0, 100.0)))),
-        MeshMaterial3d(materials.add(Color::Srgba(Srgba {
-            red: 0.0,
-            green: 1.0,
-            blue: 0.0,
-            alpha: 1.0,
-        }))),
-    ));
+    // Map
+    map_spawner.write(SpawnMap {
+        definition: map_lib.entries["First"].clone(),
+    });
 
     // Enemy
     enemy_spawner.write(SpawnEnemy {

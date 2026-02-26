@@ -20,6 +20,7 @@ struct MapAsset {
     icon: String,
     waypoints: Vec<Vec3>,
     paths: Vec<EnemyPathAsset>,
+    tower_plots: Vec<Vec3>,
 }
 
 #[derive(Asset, Reflect, Debug)]
@@ -33,6 +34,8 @@ pub struct MapDefinition {
     pub waypoints: Vec<Vec3>,
     pub paths: Vec<EnemyPath>,
     pub waves: usize,
+    /// Positions at which towers can be placed
+    pub tower_plots: Vec<Vec3>,
     #[reflect(ignore)]
     asset: Option<MapAsset>,
 }
@@ -81,6 +84,7 @@ impl RonAsset for MapAsset {
                 .map(|path| path.spawner.spawns.len())
                 .max()
                 .unwrap_or_default(),
+            tower_plots: self.tower_plots.clone(),
             asset: Some(self),
         }
     }
