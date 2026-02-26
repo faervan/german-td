@@ -44,6 +44,7 @@ fn main() {
     app.add_systems(OnEnter(AppState::Game), demo);
     app.add_systems(OnEnter(AppState::Game), log_loaded_enemies);
     app.add_systems(OnEnter(AppState::Game), log_loaded_towers);
+    app.add_systems(OnEnter(AppState::Game), log_loaded_projectiles);
     app.add_systems(Update, enemy_ctrl.run_if(in_state(AppState::Game)));
 
     app.run();
@@ -79,6 +80,21 @@ fn log_loaded_towers(tower_lib: TowerLibrary, towers: Res<Assets<TowerDefinition
             .entries
             .values()
             .map(|v| format!("{:#?}", towers.get(v)))
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+}
+
+fn log_loaded_projectiles(
+    projectile_lib: ProjectileLibrary,
+    projectiles: Res<Assets<ProjectileDefinition>>,
+) {
+    info!(
+        "projectile loaded:\n{}",
+        projectile_lib
+            .entries
+            .values()
+            .map(|v| format!("{:#?}", projectiles.get(v)))
             .collect::<Vec<_>>()
             .join("\n")
     );
