@@ -1,4 +1,5 @@
 mod camera;
+mod dev_tools;
 mod enemy;
 mod prelude;
 
@@ -24,6 +25,7 @@ fn main() {
         default_plugins(AppState::Loading, AppState::Game),
         camera::plugin,
         enemy::plugin,
+        dev_tools::plugin,
     ));
 
     // Our states

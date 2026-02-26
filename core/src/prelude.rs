@@ -24,3 +24,8 @@ pub use crate::assets::towers::TowerDefinition;
 pub use crate::components::*;
 pub use crate::enemy::*;
 pub use crate::tower::*;
+
+#[cfg(feature = "dev_native")]
+pub use bevy_egui::PrimaryEguiContext;
+#[cfg(feature = "dev_native")]
+pub use bevy_inspector_egui::{bevy_egui::EguiPlugin, prelude::*, quick::WorldInspectorPlugin};
