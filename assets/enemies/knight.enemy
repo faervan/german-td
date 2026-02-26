@@ -1,3 +1,13 @@
 (
-name: "Knight"
+name: "Knight",
+gltf: "models/enemies/Knight.glb",
+icon: "icons/enemies/Knight.png",
+damage: 5.,
+attack_duration_ms: 500,
+walk_speed: 10.,
+health: 50.,
+drop: 3.,
+idle_animation: Some("Idle"),
+walk_animation: Some("Walk"),
+attack_animation: Some("Attack"),
 )

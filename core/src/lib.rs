@@ -2,10 +2,21 @@ pub mod prelude;
 use prelude::*;
 
 mod assets;
+mod components;
+mod enemy;
+mod tower;
+pub mod utils;
 
-pub fn default_plugins<STATE: States + Copy>(loading_state: STATE) -> impl Plugin {
+pub fn default_plugins<STATE: States + Copy>(
+    loading_state: STATE,
+    game_state: STATE,
+) -> impl Plugin {
     move |app: &mut App| {
-        app.add_plugins(assets::plugin(loading_state));
+        app.add_plugins((
+            assets::plugin(loading_state),
+            enemy::plugin(game_state),
+            tower::plugin(game_state),
+        ));
     }
 }
 

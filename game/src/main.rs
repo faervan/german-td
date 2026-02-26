@@ -1,3 +1,5 @@
+mod camera;
+mod enemy;
 mod prelude;
 
 use german_td_core::{asset_plugin, default_plugins};
@@ -18,7 +20,11 @@ fn main() {
     }));
 
     // Our plugins
-    app.add_plugins(default_plugins(AppState::Loading));
+    app.add_plugins((
+        default_plugins(AppState::Loading, AppState::Game),
+        camera::plugin,
+        enemy::plugin,
+    ));
 
     // Our states
     app.init_state::<AppState>();
@@ -30,9 +36,10 @@ fn main() {
     );
 
     // Test systems
-    app.add_systems(OnEnter(AppState::Game), (camera, demo));
+    app.add_systems(OnEnter(AppState::Game), demo);
     app.add_systems(OnEnter(AppState::Game), log_loaded_enemies);
     app.add_systems(OnEnter(AppState::Game), log_loaded_towers);
+    app.add_systems(Update, enemy_ctrl.run_if(in_state(AppState::Game)));
 
     app.run();
 }
@@ -48,47 +55,40 @@ fn set_game_state(mut next_state: ResMut<NextState<AppState>>) {
     next_state.set(AppState::Game);
 }
 
-fn log_loaded_enemies(enemy_lib: EnemyLibrary) {
+fn log_loaded_enemies(enemy_lib: EnemyLibrary, enemies: Res<Assets<EnemyDefinition>>) {
     info!(
         "enemies loaded:\n{}",
         enemy_lib
             .entries
-            .keys()
-            .cloned()
+            .values()
+            .map(|v| format!("{:#?}", enemies.get(v)))
             .collect::<Vec<_>>()
             .join("\n")
     );
 }
 
-fn log_loaded_towers(tower_lib: TowerLibrary) {
+fn log_loaded_towers(tower_lib: TowerLibrary, towers: Res<Assets<TowerDefinition>>) {
     info!(
         "towers loaded:\n{}",
         tower_lib
             .entries
-            .keys()
-            .cloned()
+            .values()
+            .map(|v| format!("{:#?}", towers.get(v)))
             .collect::<Vec<_>>()
             .join("\n")
     );
-}
-
-fn camera(mut commands: Commands) {
-    commands.spawn((
-        Camera3d::default(),
-        Transform::from_translation(Vec3 {
-            x: 0.0,
-            y: 100.0,
-            z: 100.0,
-        })
-        .looking_at(Vec3::ZERO, Vec3::Y),
-    ));
 }
 
 fn demo(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    enemy_lib: EnemyLibrary,
+    tower_lib: TowerLibrary,
+    mut enemy_spawner: MessageWriter<SpawnEnemy>,
+    mut tower_spawner: MessageWriter<SpawnTower>,
 ) {
+    // Ground
     commands.spawn((
         Mesh3d(meshes.add(Plane3d::new(Vec3::Y, Vec2::new(100.0, 100.0)))),
         MeshMaterial3d(materials.add(Color::Srgba(Srgba {
@@ -98,4 +98,42 @@ fn demo(
             alpha: 1.0,
         }))),
     ));
+
+    // Enemy
+    enemy_spawner.write(SpawnEnemy {
+        position: Vec3::new(0., 0.5, 0.),
+        definition: enemy_lib.entries["Knight"].clone(),
+    });
+
+    // "Tower"
+    tower_spawner.write(SpawnTower {
+        position: Vec3::new(0., 0., -15.),
+        definition: tower_lib.entries["Bow Turret"].clone(),
+    });
+}
+
+fn enemy_ctrl(input: Res<ButtonInput<KeyCode>>, mut controllers: Query<&mut EnemyController>) {
+    if input.just_pressed(KeyCode::KeyH) {
+        for mut controller in &mut controllers {
+            if !controller.attack() {
+                warn!("Already attacking!");
+            }
+        }
+    }
+
+    if input.just_pressed(KeyCode::KeyJ) {
+        for mut controller in &mut controllers {
+            if !controller.start_moving() {
+                warn!("Already moving!");
+            }
+        }
+    }
+
+    if input.just_pressed(KeyCode::KeyK) {
+        for mut controller in &mut controllers {
+            if !controller.stop_moving() {
+                warn!("Not moving currently!");
+            }
+        }
+    }
 }

@@ -7,21 +7,26 @@ pub struct AssetLibrary<T: Asset> {
 }
 
 pub trait LibraryInitExt {
-    fn init_library<T: Asset + AssetNameExt, STATE: States>(&mut self, on_exit: STATE)
-    -> &mut Self;
+    fn init_library<T, STATE>(&mut self, on_exit: STATE) -> &mut Self
+    where
+        T: Asset + AssetNameExt + AssetLoadedHook,
+        STATE: States;
 }
 
 impl LibraryInitExt for App {
-    fn init_library<T: Asset + AssetNameExt, STATE: States>(
-        &mut self,
-        on_exit: STATE,
-    ) -> &mut Self {
-        self.add_systems(
-            OnExit(on_exit),
-            |mut commands: Commands, mut assets: ResMut<Assets<T>>| {
+    fn init_library<T, STATE>(&mut self, on_exit: STATE) -> &mut Self
+    where
+        T: Asset + AssetNameExt + AssetLoadedHook,
+        STATE: States,
+    {
+        self.add_systems(OnExit(on_exit), |world: &mut World| {
+            world.resource_scope(|world, mut assets: Mut<Assets<T>>| {
                 let entries = assets
-                    .iter()
-                    .map(|(id, asset)| (id, asset.get_name()))
+                    .iter_mut()
+                    .map(|(id, asset)| {
+                        asset.on_loaded_hook(world);
+                        (id, asset.get_name())
+                    })
                     .collect::<Vec<(AssetId<T>, String)>>()
                     .into_iter()
                     .filter_map(|(id, name)| match assets.get_strong_handle(id) {
@@ -32,9 +37,14 @@ impl LibraryInitExt for App {
                         }
                     })
                     .collect();
-                commands.insert_resource(AssetLibrary { entries });
-            },
-        );
+                world.insert_resource(AssetLibrary { entries });
+            });
+        });
         self
     }
+}
+
+pub trait AssetLoadedHook {
+    #[allow(unused)]
+    fn on_loaded_hook(&mut self, world: &mut World) {}
 }
