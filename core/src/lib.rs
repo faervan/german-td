@@ -19,6 +19,7 @@ pub fn default_plugins<STATE: States + Copy>(
 
         app.add_plugins((
             assets::plugin(loading_state),
+            utils::delayed_despawn::plugin,
             skein_spawners::plugin,
             enemy::plugin(game_state),
             maps::plugin(game_state),

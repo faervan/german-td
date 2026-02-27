@@ -24,6 +24,7 @@ pub use crate::assets::maps::MapDefinition;
 pub use crate::assets::projectile::ProjectileDefinition;
 pub use crate::assets::towers::TowerDefinition;
 pub use crate::utils::InspectNoneExt as _;
+pub use crate::utils::delayed_despawn::*;
 
 pub use crate::components::*;
 pub use crate::enemy::*;
