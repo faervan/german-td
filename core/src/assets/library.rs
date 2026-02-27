@@ -46,5 +46,7 @@ impl LibraryInitExt for App {
 
 pub trait AssetLoadedHook {
     #[allow(unused)]
+    /// The hook will be executed once the app leaves the loading state, right before inserting the
+    /// [`AssetLibrary`]
     fn on_loaded_hook(&mut self, world: &mut World) {}
 }

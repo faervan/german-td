@@ -9,15 +9,19 @@ pub use resource_loader::*;
 mod library;
 pub use library::*;
 
-pub mod enemies;
-pub mod towers;
+pub(crate) mod enemies;
+pub(crate) mod maps;
+pub(crate) mod projectile;
+pub(crate) mod towers;
 
 pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin {
     move |app: &mut App| {
         app.add_plugins((
             resource_loader::plugin,
             enemies::plugin(loading_state),
+            maps::plugin(loading_state),
             towers::plugin(loading_state),
+            projectile::plugin(loading_state),
         ));
     }
 }

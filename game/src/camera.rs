@@ -71,7 +71,7 @@ fn move_camera_key(
 }
 
 // edge pan tolerance in percent
-const EDGE_PAN_TOLERANCE: f32 = 0.05;
+const EDGE_PAN_TOLERANCE: f32 = 0.01;
 
 // Mouse edge pan based movement
 // Cursor is considered outside to the very right, so we operate on the cached cursor position

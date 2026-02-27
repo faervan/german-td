@@ -5,14 +5,13 @@ pub(crate) fn plugin(app: &mut App) {
 }
 
 fn enemy_ai(
-    time: Res<Time>,
-    mut transforms: Query<&mut Transform, With<Enemy>>,
+    mut enemies: Query<(&mut LinearVelocity, &Transform), With<Enemy>>,
     mut right: Local<bool>,
 ) {
-    for mut transform in &mut transforms {
+    for (mut velocity, transform) in &mut enemies {
         let dir = if *right { 1.0 } else { -1.0 };
 
-        transform.translation.x += dir * 25.0 * time.delta_secs();
+        velocity.0.x = dir * 25.0;
 
         if transform.translation.x < -50.0 {
             *right = true;
