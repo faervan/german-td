@@ -31,13 +31,6 @@ pub(super) fn plugin(app: &mut App) {
 fn setup(mut commands: Commands, mut egui_global_settings: ResMut<EguiGlobalSettings>) {
     egui_global_settings.auto_create_primary_context = false;
 
-    // camera
-    commands.spawn((
-        Name::new("Camera3d"),
-        Camera3d::default(),
-        Transform::from_xyz(-15.0, 10.0, -15.0).looking_at(Vec3::new(0.0, 0., 0.0), Vec3::Y),
-    ));
-
     // egui camera
     commands.spawn((
         Camera2d,

@@ -3,7 +3,9 @@ use german_td_core::{asset_plugin, default_plugins};
 mod prelude;
 use prelude::*;
 
-mod editor;
+mod camera;
+mod gui;
+mod preview;
 
 fn main() {
     let mut app = App::new();
@@ -20,7 +22,9 @@ fn main() {
 
     app.add_plugins((
         default_plugins(State::Loading, State::Editor),
-        editor::plugin,
+        gui::plugin,
+        preview::plugin,
+        camera::plugin,
     ));
 
     app.init_state::<State>();
