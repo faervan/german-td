@@ -30,6 +30,12 @@ fn main() {
         set_editor_state.run_if(in_state(State::Loading).and(all_assets_loaded)),
     );
 
+    app.add_systems(
+        Update,
+        exit_game
+            .run_if(input_pressed(KeyCode::ControlLeft).and(input_just_pressed(KeyCode::KeyQ))),
+    );
+
     app.run();
 }
 
@@ -42,4 +48,8 @@ pub(crate) enum State {
 
 fn set_editor_state(mut next_state: ResMut<NextState<State>>) {
     next_state.set(State::Editor);
+}
+
+fn exit_game(mut exit: MessageWriter<AppExit>) {
+    exit.write(AppExit::Success);
 }
