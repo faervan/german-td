@@ -27,7 +27,7 @@ struct EditorCamera;
 fn setup(mut commands: Commands) {
     info!(
         "\nCamera controls:\n\
-        WASD, Shift/Space to move\n\
+        WASD, Space/Shift+Space to move\n\
         Hold right click + move cursor to rotate\n\n\
         Keybinds:\n\
         <C-q> to quit\n\
@@ -70,10 +70,11 @@ fn movement(
             direction += Vec3::X;
         }
         if input.pressed(KeyCode::Space) {
-            direction += Vec3::Y;
-        }
-        if input.pressed(KeyCode::ShiftLeft) {
-            direction += Vec3::NEG_Y;
+            if input.pressed(KeyCode::ShiftLeft) {
+                direction += Vec3::NEG_Y;
+            } else {
+                direction += Vec3::Y;
+            }
         }
 
         let rotation = transform.rotation;

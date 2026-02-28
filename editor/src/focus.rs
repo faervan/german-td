@@ -1,3 +1,8 @@
+use bevy::{
+    pbr::{ExtendedMaterial, MaterialExtension},
+    render::render_resource::AsBindGroup,
+};
+
 use crate::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
@@ -5,72 +10,155 @@ pub(super) fn plugin(app: &mut App) {
 
     app.add_plugins(MeshPickingPlugin);
 
-    app.add_systems(Update, (add_pickable, draw_axes));
+    app.add_plugins(MaterialPlugin::<
+        ExtendedMaterial<StandardMaterial, FocusMaterial>,
+    >::default());
 
-    app.world_mut().add_observer(print_click);
+    app.add_systems(Update, (add_pickable, draw_axes));
+    app.add_systems(
+        Update,
+        clear_focused
+            .run_if(input_pressed(KeyCode::ShiftLeft).and(input_just_pressed(KeyCode::Escape))),
+    );
 }
 
-#[derive(Resource, Default)]
-struct FocusedEntities {
-    entities: Vec<Entity>,
+#[derive(Resource, Reflect, Default)]
+#[reflect(Resource)]
+pub struct FocusedEntities {
+    pub entities: Vec<Entity>,
+}
+
+fn clear_focused(mut commands: Commands, mut focused: ResMut<FocusedEntities>) {
+    for entity in focused.entities.drain(..) {
+        commands
+            .entity(entity)
+            .trigger(|target| EntitySelectChange {
+                target,
+                selected: false,
+            });
+    }
 }
 
 #[derive(Component)]
 struct FocusableEntity;
 
-#[derive(EntityEvent, Clone, Copy)]
+#[derive(EntityEvent, Clone)]
 struct EntityHoverChange {
     #[event_target]
     target: Entity,
     hovered: bool,
 }
 
-#[derive(EntityEvent, Clone, Copy)]
+#[derive(EntityEvent, Clone)]
 struct EntitySelectChange {
     #[event_target]
     target: Entity,
     selected: bool,
 }
 
-fn trigger_root_event<E: EntityEvent, TRIGGER: EntityEvent + Copy>(
+#[derive(Component)]
+struct MaterialHandles(Vec<Handle<ExtendedMaterial<StandardMaterial, FocusMaterial>>>);
+
+fn trigger_root_event<E: EntityEvent, TRIGGER: EntityEvent + Clone>(
     trigger: TRIGGER,
 ) -> impl Fn(On<E>, Commands)
 where
     for<'a> <TRIGGER as bevy::prelude::Event>::Trigger<'a>: std::default::Default,
 {
     move |_event, mut commands| {
-        commands.trigger(trigger);
+        commands.trigger(trigger.clone());
+    }
+}
+
+fn edit_material<E: EntityEvent>(
+    f: impl Fn(&E, &mut f32),
+) -> impl Fn(
+    On<E>,
+    Query<&MaterialHandles>,
+    ResMut<Assets<ExtendedMaterial<StandardMaterial, FocusMaterial>>>,
+) {
+    move |event: On<E>,
+          query: Query<&MaterialHandles>,
+          mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, FocusMaterial>>>| {
+        if let Ok(handles) = query.get(event.event_target()) {
+            for handle in &handles.0 {
+                if let Some(material) = materials.get_mut(handle) {
+                    f(&event, &mut material.extension.hightlight);
+                }
+            }
+        }
     }
 }
 
 fn add_pickable(
     mut commands: Commands,
     added: Query<(Entity, &Children), Or<(Added<Enemy>, Added<Tower>)>>,
-    query: Query<(Option<&Children>, Has<Mesh3d>), With<ChildOf>>,
+    query: Query<(Option<&Children>, Option<&MeshMaterial3d<StandardMaterial>>), With<ChildOf>>,
+    standard_materials: Res<Assets<StandardMaterial>>,
+    mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, FocusMaterial>>>,
 ) {
     for (root, children) in added {
         dbg!(root);
         commands
             .entity(root)
             .insert(FocusableEntity)
-            .observe(move |event: On<EntityHoverChange>| match event.hovered {
-                true => debug!("Entity {root} was hovered!"),
-                false => debug!("Entity {root} was unhovered!"),
-            })
-            .observe(move |event: On<EntitySelectChange>| match event.selected {
-                true => debug!("Entity {root} was selected!"),
-                false => debug!("Entity {root} was unselected!"),
-            });
+            .observe(
+                |event: On<EntitySelectChange>,
+                 mut commands: Commands,
+                 input: Res<ButtonInput<KeyCode>>,
+                 mut focused: ResMut<FocusedEntities>| {
+                    if event.selected {
+                        debug!("{} selected", event.event_target());
+                        if input.pressed(KeyCode::ShiftLeft) {
+                            for entity in std::mem::take(&mut focused.entities) {
+                                commands
+                                    .entity(entity)
+                                    .trigger(|target| EntitySelectChange {
+                                        target,
+                                        selected: false,
+                                    });
+                            }
+                            focused.entities = vec![event.event_target()];
+                        } else {
+                            focused.entities.push(event.event_target());
+                        }
+                    }
+                },
+            )
+            .observe(edit_material::<EntitySelectChange>(
+                |e, hightlight| match e.selected {
+                    true => *hightlight = 2.,
+                    false => *hightlight = 0.,
+                },
+            ))
+            .observe(edit_material::<EntityHoverChange>(|e, highlight| {
+                if *highlight != 2. {
+                    *highlight = match e.hovered {
+                        true => 1.,
+                        false => 0.,
+                    };
+                }
+            }));
+        let mut material_handles = vec![];
         let mut current = children.to_vec();
         while !current.is_empty() {
             for entity in std::mem::take(&mut current) {
-                if let Ok((children_maybe, has_mesh)) = query.get(entity) {
+                if let Ok((children_maybe, material_maybe)) = query.get(entity) {
                     if let Some(children) = children_maybe {
                         current.extend(children);
                     }
-                    if has_mesh {
+                    if let Some(base_material) =
+                        material_maybe.and_then(|handle| standard_materials.get(handle).cloned())
+                    {
+                        let extended_material = materials.add(ExtendedMaterial {
+                            base: base_material,
+                            extension: FocusMaterial::default(),
+                        });
+                        material_handles.push(extended_material.clone());
                         commands
                             .entity(entity)
+                            .remove::<MeshMaterial3d<StandardMaterial>>()
+                            .insert(MeshMaterial3d(extended_material))
                             .observe(trigger_root_event::<Pointer<Over>, _>(EntityHoverChange {
                                 target: root,
                                 hovered: true,
@@ -84,17 +172,14 @@ fn add_pickable(
                                     target: root,
                                     selected: true,
                                 },
-                            ))
-                            .observe(trigger_root_event::<Pointer<Release>, _>(
-                                EntitySelectChange {
-                                    target: root,
-                                    selected: false,
-                                },
                             ));
                     }
                 }
             }
         }
+        commands
+            .entity(root)
+            .insert(MaterialHandles(material_handles));
     }
 }
 
@@ -104,6 +189,22 @@ fn draw_axes(mut gizmos: Gizmos, query: Query<&Transform, With<FocusableEntity>>
     }
 }
 
-fn print_click(event: On<Pointer<Click>>) {
-    debug!("Clicked on entity: {}", event.entity);
+#[derive(Asset, AsBindGroup, Reflect, Debug, Clone, Default)]
+#[reflect(Asset)]
+struct FocusMaterial {
+    #[uniform(100)]
+    /// 0 => default
+    /// 1 => hovered
+    /// 2 => selected
+    hightlight: f32,
+}
+
+impl MaterialExtension for FocusMaterial {
+    fn fragment_shader() -> bevy::shader::ShaderRef {
+        "shaders/focus.wgsl".into()
+    }
+
+    fn deferred_fragment_shader() -> bevy::shader::ShaderRef {
+        "shaders/focus.wgsl".into()
+    }
 }
