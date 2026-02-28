@@ -5,11 +5,14 @@ use bevy::{
 
 use crate::prelude::*;
 
+mod movement;
+
 pub(super) fn plugin(app: &mut App) {
+    app.add_plugins(movement::plugin);
+
     app.init_resource::<FocusedEntities>();
 
     app.add_plugins(MeshPickingPlugin);
-
     app.add_plugins(MaterialPlugin::<
         ExtendedMaterial<StandardMaterial, FocusMaterial>,
     >::default());
@@ -98,7 +101,6 @@ fn add_pickable(
     mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, FocusMaterial>>>,
 ) {
     for (root, children) in added {
-        dbg!(root);
         commands
             .entity(root)
             .insert(FocusableEntity)
@@ -108,9 +110,13 @@ fn add_pickable(
                  input: Res<ButtonInput<KeyCode>>,
                  mut focused: ResMut<FocusedEntities>| {
                     if event.selected {
-                        debug!("{} selected", event.event_target());
                         if input.pressed(KeyCode::ShiftLeft) {
+                            focused.entities.push(event.event_target());
+                        } else {
                             for entity in std::mem::take(&mut focused.entities) {
+                                if entity == event.event_target() {
+                                    continue;
+                                }
                                 commands
                                     .entity(entity)
                                     .trigger(|target| EntitySelectChange {
@@ -119,8 +125,6 @@ fn add_pickable(
                                     });
                             }
                             focused.entities = vec![event.event_target()];
-                        } else {
-                            focused.entities.push(event.event_target());
                         }
                     }
                 },

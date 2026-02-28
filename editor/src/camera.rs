@@ -22,7 +22,7 @@ pub(super) fn plugin(app: &mut App) {
 }
 
 #[derive(Component)]
-struct EditorCamera;
+pub struct EditorCamera;
 
 fn setup(mut commands: Commands) {
     info!(
@@ -30,6 +30,11 @@ fn setup(mut commands: Commands) {
         WASD, Space/Shift+Space to move\n\
         Hold right click + move cursor to rotate\n\n\
         Keybinds:\n\
+        <LeftMouse> on entity to select\n\
+        <S-LeftMouse> on entity to add to selection (keep previous selected)\n\
+        <S-Esc> to unselect all\n\
+        <g> to move selection\n\
+        <x>/<y>/<z> to restrict movement to axis (twice to local axis)\n\
         <C-q> to quit\n\
         <C-a> to open the spawn menu\n\
         <CR> to close the floating menus\n\
