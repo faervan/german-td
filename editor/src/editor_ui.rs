@@ -3,7 +3,7 @@ use bevy::{
     window::PrimaryWindow,
 };
 use bevy_egui::{EguiContext, EguiContextSettings, EguiGlobalSettings, EguiPrimaryContextPass};
-use bevy_inspector_egui::{DefaultInspectorConfigPlugin, bevy_inspector::ui_for_resources};
+use bevy_inspector_egui::{DefaultInspectorConfigPlugin, bevy_inspector::ui_for_world};
 use egui::LayerId;
 use egui_dock::{DockArea, DockState, NodeIndex, Style};
 
@@ -33,8 +33,9 @@ fn setup(mut commands: Commands, mut egui_global_settings: ResMut<EguiGlobalSett
 
     // egui camera
     commands.spawn((
-        Camera2d,
         Name::new("Egui Camera"),
+        Camera2d,
+        Pickable::IGNORE,
         PrimaryEguiContext,
         RenderLayers::none(),
         Camera {
@@ -100,7 +101,7 @@ impl UiState {
         let [_game, sidebar_menu] = tree.split_left(
             NodeIndex::root(),
             0.3,
-            vec![EguiWindow::SidebarMenu, EguiWindow::Resources],
+            vec![EguiWindow::SidebarMenu, EguiWindow::WorldInspector],
         );
         let [_sidebar_menu, _options] =
             tree.split_below(sidebar_menu, 0.9, vec![EguiWindow::Options]);
@@ -128,7 +129,7 @@ impl UiState {
 enum EguiWindow {
     GameView,
     SidebarMenu,
-    Resources,
+    WorldInspector,
     Options,
 }
 
@@ -152,15 +153,15 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                     ui.label("Very empty");
                 });
             }
+            EguiWindow::WorldInspector => {
+                ui_for_world(self.world, ui);
+            }
             EguiWindow::Options => {
                 ui.vertical(|ui| {
                     if ui.button("Close editor").clicked() {
                         self.world.write_message(AppExit::Success);
                     }
                 });
-            }
-            EguiWindow::Resources => {
-                ui_for_resources(self.world, ui);
             }
         }
 

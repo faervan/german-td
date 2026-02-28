@@ -30,12 +30,15 @@ fn setup(mut commands: Commands) {
         WASD, Shift/Space to move\n\
         Hold right click + move cursor to rotate\n\n\
         Keybinds:\n\
-        <CR>q to quit"
+        <C-q> to quit\n\
+        <C-a> to open the spawn menu\n\
+        <CR> to close the floating menus\n\
+        <A-g> to toggle aabb gizmo"
     );
 
     commands.spawn((
-        EditorCamera,
         Name::new("EditorCamera"),
+        EditorCamera,
         Camera3d::default(),
         Transform::default(),
     ));

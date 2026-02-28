@@ -5,6 +5,7 @@ use prelude::*;
 
 mod camera;
 mod editor_ui;
+mod focus;
 mod preview;
 mod spawn_menu;
 
@@ -23,10 +24,11 @@ fn main() {
 
     app.add_plugins((
         default_plugins(State::Loading, State::Editor),
-        editor_ui::plugin,
-        spawn_menu::plugin,
-        preview::plugin,
         camera::plugin,
+        editor_ui::plugin,
+        focus::plugin,
+        preview::plugin,
+        spawn_menu::plugin,
     ));
 
     app.init_state::<State>();
@@ -34,6 +36,15 @@ fn main() {
     app.add_systems(
         Update,
         set_editor_state.run_if(in_state(State::Loading).and(all_assets_loaded)),
+    );
+
+    app.add_systems(
+        Update,
+        toggle_aabb_gizmo.run_if(
+            in_state(State::Editor)
+                .and(input_pressed(KeyCode::AltLeft))
+                .and(input_just_pressed(KeyCode::KeyG)),
+        ),
     );
 
     app.add_systems(
@@ -54,6 +65,11 @@ pub(crate) enum State {
 
 fn set_editor_state(mut next_state: ResMut<NextState<State>>) {
     next_state.set(State::Editor);
+}
+
+fn toggle_aabb_gizmo(mut config: ResMut<GizmoConfigStore>) {
+    let (_, config) = config.config_mut::<AabbGizmoConfigGroup>();
+    config.draw_all = !config.draw_all;
 }
 
 fn exit_game(mut exit: MessageWriter<AppExit>) {
