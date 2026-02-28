@@ -20,6 +20,14 @@ pub(super) fn plugin(app: &mut App) {
     app.add_systems(Update, (add_pickable, draw_axes));
     app.add_systems(
         Update,
+        select_all.run_if(
+            input_just_pressed(KeyCode::KeyA)
+                .and(input_pressed(KeyCode::ShiftLeft))
+                .and(not(input_pressed(KeyCode::ControlLeft))),
+        ),
+    );
+    app.add_systems(
+        Update,
         clear_focused
             .run_if(input_pressed(KeyCode::ShiftLeft).and(input_just_pressed(KeyCode::Escape))),
     );
@@ -35,15 +43,55 @@ fn clear_focused(mut commands: Commands, mut focused: ResMut<FocusedEntities>) {
     for entity in focused.entities.drain(..) {
         commands
             .entity(entity)
-            .trigger(|target| EntitySelectChange {
-                target,
-                selected: false,
-            });
+            .trigger(EntitySelectChange::unselect);
     }
 }
 
 #[derive(Component)]
+#[component(on_add)]
 pub struct FocusableEntity;
+
+impl FocusableEntity {
+    fn on_add(mut world: DeferredWorld, hook: HookContext) {
+        world
+            .commands()
+            .entity(hook.entity)
+            .observe(
+                |event: On<EntitySelectChange>,
+                 mut commands: Commands,
+                 input: Res<ButtonInput<KeyCode>>,
+                 mut focused: ResMut<FocusedEntities>| {
+                    if event.selected && !event.all {
+                        debug!("select event triggered for {}", event.target);
+                        if input.pressed(KeyCode::ShiftLeft) {
+                            focused.entities.push(event.event_target());
+                        } else {
+                            for entity in std::mem::take(&mut focused.entities) {
+                                if entity == event.event_target() {
+                                    continue;
+                                }
+                                commands
+                                    .entity(entity)
+                                    .trigger(EntitySelectChange::unselect);
+                            }
+                            focused.entities = vec![event.event_target()];
+                        }
+                    }
+                },
+            )
+            .observe(trigger_root_event::<Pointer<Over>, _>(EntityHoverChange {
+                target: hook.entity,
+                hovered: true,
+            }))
+            .observe(trigger_root_event::<Pointer<Out>, _>(EntityHoverChange {
+                target: hook.entity,
+                hovered: false,
+            }))
+            .observe(trigger_root_event::<Pointer<Press>, _>(
+                EntitySelectChange::select(hook.entity),
+            ));
+    }
+}
 
 #[derive(EntityEvent, Clone)]
 struct EntityHoverChange {
@@ -55,8 +103,27 @@ struct EntityHoverChange {
 #[derive(EntityEvent, Clone)]
 pub struct EntitySelectChange {
     #[event_target]
-    pub target: Entity,
+    target: Entity,
     pub selected: bool,
+    all: bool,
+}
+
+impl EntitySelectChange {
+    pub fn select(target: Entity) -> Self {
+        Self {
+            target,
+            selected: true,
+            all: false,
+        }
+    }
+
+    pub fn unselect(target: Entity) -> Self {
+        Self {
+            target,
+            selected: false,
+            all: false,
+        }
+    }
 }
 
 #[derive(Component)]
@@ -95,43 +162,15 @@ fn edit_material<E: EntityEvent>(
 
 fn add_pickable(
     mut commands: Commands,
-    added: Query<
-        (Entity, Option<&Children>),
-        Or<(Added<Enemy>, Added<Tower>, Added<EditorCursor>)>,
-    >,
+    added: Query<(Entity, &Children), Or<(Added<Enemy>, Added<Tower>)>>,
     query: Query<(Option<&Children>, Option<&MeshMaterial3d<StandardMaterial>>), With<ChildOf>>,
     standard_materials: Res<Assets<StandardMaterial>>,
     mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, FocusMaterial>>>,
 ) {
-    for (root, children_maybe) in added {
+    for (root, children) in added {
         commands
             .entity(root)
             .insert(FocusableEntity)
-            .observe(
-                |event: On<EntitySelectChange>,
-                 mut commands: Commands,
-                 input: Res<ButtonInput<KeyCode>>,
-                 mut focused: ResMut<FocusedEntities>| {
-                    if event.selected {
-                        if input.pressed(KeyCode::ShiftLeft) {
-                            focused.entities.push(event.event_target());
-                        } else {
-                            for entity in std::mem::take(&mut focused.entities) {
-                                if entity == event.event_target() {
-                                    continue;
-                                }
-                                commands
-                                    .entity(entity)
-                                    .trigger(|target| EntitySelectChange {
-                                        target,
-                                        selected: false,
-                                    });
-                            }
-                            focused.entities = vec![event.event_target()];
-                        }
-                    }
-                },
-            )
             .observe(edit_material::<EntitySelectChange>(
                 |e, hightlight| match e.selected {
                     true => *hightlight = 2.,
@@ -147,25 +186,6 @@ fn add_pickable(
                 }
             }));
         let mut material_handles = vec![];
-        let Some(children) = children_maybe else {
-            commands
-                .entity(root)
-                .observe(trigger_root_event::<Pointer<Over>, _>(EntityHoverChange {
-                    target: root,
-                    hovered: true,
-                }))
-                .observe(trigger_root_event::<Pointer<Out>, _>(EntityHoverChange {
-                    target: root,
-                    hovered: false,
-                }))
-                .observe(trigger_root_event::<Pointer<Press>, _>(
-                    EntitySelectChange {
-                        target: root,
-                        selected: true,
-                    },
-                ));
-            continue;
-        };
         let mut current = children.to_vec();
         while !current.is_empty() {
             for entity in std::mem::take(&mut current) {
@@ -194,10 +214,7 @@ fn add_pickable(
                                 hovered: false,
                             }))
                             .observe(trigger_root_event::<Pointer<Press>, _>(
-                                EntitySelectChange {
-                                    target: root,
-                                    selected: true,
-                                },
+                                EntitySelectChange::select(root),
                             ));
                     }
                 }
@@ -213,6 +230,29 @@ fn draw_axes(mut gizmos: Gizmos, query: Query<&Transform, With<FocusableEntity>>
     for transform in query {
         gizmos.axes(*transform, 3.);
     }
+}
+
+fn select_all(
+    mut focused: ResMut<FocusedEntities>,
+    mut commands: Commands,
+    query: Query<Entity, With<FocusableEntity>>,
+) {
+    debug!("select_all");
+    for entity in query {
+        if !focused.entities.contains(&entity) {
+            debug!("triggering select for {entity}");
+            commands
+                .entity(entity)
+                .trigger(|target| EntitySelectChange {
+                    target,
+                    selected: true,
+                    all: true,
+                });
+        }
+    }
+    debug!("focused entities before: {:?}", focused.entities);
+    focused.entities = query.iter().collect();
+    debug!("focused entities after: {:?}", focused.entities);
 }
 
 #[derive(Asset, AsBindGroup, Reflect, Debug, Clone, Default)]

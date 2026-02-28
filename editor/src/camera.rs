@@ -32,12 +32,15 @@ fn setup(mut commands: Commands) {
         Keybinds:\n\
         <LeftMouse> on entity to select\n\
         <S-LeftMouse> on entity to add to selection (keep previous selected)\n\
+        <S-a> to select all\n\
         <S-Esc> to unselect all\n\
         <g> to move selection\n\
         <x>/<y>/<z> to restrict movement to axis (twice to local axis)\n\
+        <Esc> to cancel selection movement\n\
+        <LeftMouse> to confirm selection movement\n\
         <C-q> to quit\n\
         <C-a> to open the spawn menu\n\
-        <CR> to close the floating menus\n\
+        <Esc> to close the floating menus\n\
         <A-g> to toggle aabb gizmo"
     );
 
@@ -55,7 +58,9 @@ fn movement(
     input: Res<ButtonInput<KeyCode>>,
     query: Query<&mut Transform, With<EditorCamera>>,
 ) {
-    if input.pressed(KeyCode::ControlLeft) {
+    if input.pressed(KeyCode::ControlLeft)
+        || input.pressed(KeyCode::ShiftLeft) && input.pressed(KeyCode::KeyA)
+    {
         return;
     }
 

@@ -29,6 +29,7 @@ fn spawn_cursor(mut commands: Commands, mut gizmos: ResMut<Assets<GizmoAsset>>) 
         .spawn((
             Name::new("3dCursor"),
             EditorCursor,
+            FocusableEntity,
             Transform::default(),
             Gizmo {
                 handle: gizmos.add(gizmo),
