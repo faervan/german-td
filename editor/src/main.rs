@@ -4,8 +4,10 @@ mod prelude;
 use prelude::*;
 
 mod camera;
+mod cursor;
 mod editor_ui;
 mod focus;
+mod map;
 mod preview;
 mod spawn_menu;
 
@@ -25,8 +27,10 @@ fn main() {
     app.add_plugins((
         default_plugins(State::Loading, State::Editor),
         camera::plugin,
+        cursor::plugin,
         editor_ui::plugin,
         focus::plugin,
+        map::plugin,
         preview::plugin,
         spawn_menu::plugin,
     ));

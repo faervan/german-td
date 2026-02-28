@@ -43,7 +43,7 @@ fn clear_focused(mut commands: Commands, mut focused: ResMut<FocusedEntities>) {
 }
 
 #[derive(Component)]
-struct FocusableEntity;
+pub struct FocusableEntity;
 
 #[derive(EntityEvent, Clone)]
 struct EntityHoverChange {
@@ -53,10 +53,10 @@ struct EntityHoverChange {
 }
 
 #[derive(EntityEvent, Clone)]
-struct EntitySelectChange {
+pub struct EntitySelectChange {
     #[event_target]
-    target: Entity,
-    selected: bool,
+    pub target: Entity,
+    pub selected: bool,
 }
 
 #[derive(Component)]
@@ -95,12 +95,15 @@ fn edit_material<E: EntityEvent>(
 
 fn add_pickable(
     mut commands: Commands,
-    added: Query<(Entity, &Children), Or<(Added<Enemy>, Added<Tower>)>>,
+    added: Query<
+        (Entity, Option<&Children>),
+        Or<(Added<Enemy>, Added<Tower>, Added<EditorCursor>)>,
+    >,
     query: Query<(Option<&Children>, Option<&MeshMaterial3d<StandardMaterial>>), With<ChildOf>>,
     standard_materials: Res<Assets<StandardMaterial>>,
     mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, FocusMaterial>>>,
 ) {
-    for (root, children) in added {
+    for (root, children_maybe) in added {
         commands
             .entity(root)
             .insert(FocusableEntity)
@@ -144,6 +147,25 @@ fn add_pickable(
                 }
             }));
         let mut material_handles = vec![];
+        let Some(children) = children_maybe else {
+            commands
+                .entity(root)
+                .observe(trigger_root_event::<Pointer<Over>, _>(EntityHoverChange {
+                    target: root,
+                    hovered: true,
+                }))
+                .observe(trigger_root_event::<Pointer<Out>, _>(EntityHoverChange {
+                    target: root,
+                    hovered: false,
+                }))
+                .observe(trigger_root_event::<Pointer<Press>, _>(
+                    EntitySelectChange {
+                        target: root,
+                        selected: true,
+                    },
+                ));
+            continue;
+        };
         let mut current = children.to_vec();
         while !current.is_empty() {
             for entity in std::mem::take(&mut current) {

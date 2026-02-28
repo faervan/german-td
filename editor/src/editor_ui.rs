@@ -3,7 +3,10 @@ use bevy::{
     window::PrimaryWindow,
 };
 use bevy_egui::{EguiContext, EguiContextSettings, EguiGlobalSettings, EguiPrimaryContextPass};
-use bevy_inspector_egui::{DefaultInspectorConfigPlugin, bevy_inspector::ui_for_world};
+use bevy_inspector_egui::{
+    DefaultInspectorConfigPlugin,
+    bevy_inspector::{ui_for_entity_with_children, ui_for_world},
+};
 use egui::LayerId;
 use egui_dock::{DockArea, DockState, NodeIndex, Style};
 
@@ -143,14 +146,15 @@ impl egui_dock::TabViewer for TabViewer<'_> {
     type Tab = EguiWindow;
 
     fn ui(&mut self, ui: &mut egui_dock::egui::Ui, window: &mut Self::Tab) {
-        let type_registry = self.world.resource::<AppTypeRegistry>().0.clone();
-        let type_registry = type_registry.read();
-
         match window {
             EguiWindow::GameView => *self.viewport_rect = ui.clip_rect(),
             EguiWindow::SidebarMenu => {
                 ui.vertical(|ui| {
-                    ui.label("Very empty");
+                    ui.label("Selected entities:");
+                    let focused = self.world.resource::<FocusedEntities>();
+                    for entity in focused.entities.clone() {
+                        ui_for_entity_with_children(self.world, entity, ui);
+                    }
                 });
             }
             EguiWindow::WorldInspector => {

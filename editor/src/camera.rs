@@ -45,7 +45,7 @@ fn setup(mut commands: Commands) {
         Name::new("EditorCamera"),
         EditorCamera,
         Camera3d::default(),
-        Transform::default(),
+        Transform::from_xyz(0., 2., 3.).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 }
 

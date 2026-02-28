@@ -60,8 +60,13 @@ fn spawn_enemy(world: &mut World, ui: &mut Ui) {
     if ui.button("Spawn Enemy").clicked() {
         let definition =
             world.resource::<AssetLibrary<EnemyDefinition>>().entries["Knight"].clone();
+        let position = world
+            .query_filtered::<&Transform, With<EditorCursor>>()
+            .single(world)
+            .unwrap()
+            .translation;
         world.write_message(SpawnEnemy {
-            position: Vec3::Y,
+            position,
             definition,
         });
 
@@ -73,8 +78,13 @@ fn spawn_tower(world: &mut World, ui: &mut Ui) {
     if ui.button("Spawn Tower").clicked() {
         let definition =
             world.resource::<AssetLibrary<TowerDefinition>>().entries["Bow Turret"].clone();
+        let position = world
+            .query_filtered::<&Transform, With<EditorCursor>>()
+            .single(world)
+            .unwrap()
+            .translation;
         world.write_message(SpawnTower {
-            position: Vec3::Y,
+            position,
             definition,
         });
 
