@@ -15,6 +15,7 @@ pub fn default_plugins<STATE: States + Copy>(
     game_state: STATE,
 ) -> impl Plugin {
     move |app: &mut App| {
+        app.add_plugins(PhysicsPlugins::default());
         app.add_plugins(bevy_skein::SkeinPlugin::default());
 
         app.add_plugins((
