@@ -4,8 +4,9 @@ mod prelude;
 use prelude::*;
 
 mod camera;
-mod gui;
+mod editor_ui;
 mod preview;
+mod spawn_menu;
 
 fn main() {
     let mut app = App::new();
@@ -22,7 +23,8 @@ fn main() {
 
     app.add_plugins((
         default_plugins(State::Loading, State::Editor),
-        gui::plugin,
+        editor_ui::plugin,
+        spawn_menu::plugin,
         preview::plugin,
         camera::plugin,
     ));

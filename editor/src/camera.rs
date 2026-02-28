@@ -47,6 +47,10 @@ fn movement(
     input: Res<ButtonInput<KeyCode>>,
     query: Query<&mut Transform, With<EditorCamera>>,
 ) {
+    if input.pressed(KeyCode::ControlLeft) {
+        return;
+    }
+
     for mut transform in query {
         let mut direction = Vec3::ZERO;
 

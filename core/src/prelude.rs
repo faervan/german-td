@@ -12,11 +12,12 @@ pub use bevy::ecs::{lifecycle::HookContext, world::DeferredWorld};
 pub use bevy::input::common_conditions::{input_just_pressed, input_just_released, input_pressed};
 pub use bevy::prelude::*;
 
-pub type EnemyLibrary<'a> = Res<'a, crate::assets::AssetLibrary<EnemyDefinition>>;
-pub type MapLibrary<'a> = Res<'a, crate::assets::AssetLibrary<MapDefinition>>;
-pub type TowerLibrary<'a> = Res<'a, crate::assets::AssetLibrary<TowerDefinition>>;
-pub type ProjectileLibrary<'a> = Res<'a, crate::assets::AssetLibrary<ProjectileDefinition>>;
+pub type EnemyLibrary<'a> = Res<'a, AssetLibrary<EnemyDefinition>>;
+pub type MapLibrary<'a> = Res<'a, AssetLibrary<MapDefinition>>;
+pub type TowerLibrary<'a> = Res<'a, AssetLibrary<TowerDefinition>>;
+pub type ProjectileLibrary<'a> = Res<'a, AssetLibrary<ProjectileDefinition>>;
 
+pub use crate::assets::AssetLibrary;
 pub use crate::assets::AssetResourceLoader as _;
 pub use crate::assets::LibraryInitExt as _;
 pub use crate::assets::all_assets_loaded;
