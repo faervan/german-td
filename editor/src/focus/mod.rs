@@ -6,9 +6,10 @@ use bevy::{
 use crate::prelude::*;
 
 mod movement;
+mod teleport;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_plugins(movement::plugin);
+    app.add_plugins((movement::plugin, teleport::plugin));
 
     app.init_resource::<FocusedEntities>();
 
@@ -103,7 +104,7 @@ struct EntityHoverChange {
 #[derive(EntityEvent, Clone)]
 pub struct EntitySelectChange {
     #[event_target]
-    target: Entity,
+    pub target: Entity,
     pub selected: bool,
     all: bool,
 }

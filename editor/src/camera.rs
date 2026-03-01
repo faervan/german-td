@@ -38,6 +38,7 @@ fn setup(mut commands: Commands) {
         <x>/<y>/<z> to restrict movement to axis (twice to local axis)\n\
         <Esc> to cancel selection movement\n\
         <LeftMouse> to confirm selection movement\n\
+        <C-RightMouse> to move selected to cursor position\n\
         <C-q> to quit\n\
         <C-a> to open the spawn menu\n\
         <Esc> to close the floating menus\n\
