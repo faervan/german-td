@@ -10,6 +10,7 @@ pub use avian3d::prelude::*;
 pub use bevy::asset::ReflectAsset;
 pub use bevy::ecs::{lifecycle::HookContext, world::DeferredWorld};
 pub use bevy::input::common_conditions::{input_just_pressed, input_just_released, input_pressed};
+pub use bevy::light::{NotShadowCaster, NotShadowReceiver};
 pub use bevy::prelude::*;
 
 pub type EnemyLibrary<'a> = Res<'a, AssetLibrary<EnemyDefinition>>;
