@@ -53,6 +53,18 @@ pub struct EnemyPath {
     pub spawner: EnemySpawnPoint,
 }
 
+impl EnemyPath {
+    async fn from_asset(
+        asset: &EnemyPathAsset,
+        context: &mut bevy::asset::LoadContext<'_>,
+    ) -> Self {
+        Self {
+            waypoints: asset.waypoints.clone(),
+            spawner: EnemySpawnPoint::from_asset(&asset.spawner, context).await,
+        }
+    }
+}
+
 #[derive(Reflect, Debug, Serialize, Deserialize)]
 struct EnemySpawnPointAsset {
     spawns: Vec<Vec<(Duration, String)>>,
@@ -66,6 +78,25 @@ pub struct EnemySpawnPoint {
     pub spawns: Vec<Vec<(Duration, Handle<EnemyDefinition>)>>,
 }
 
+impl EnemySpawnPoint {
+    async fn from_asset(
+        asset: &EnemySpawnPointAsset,
+        context: &mut bevy::asset::LoadContext<'_>,
+    ) -> Self {
+        Self {
+            spawns: asset
+                .spawns
+                .iter()
+                .map(|wave| {
+                    wave.iter()
+                        .map(|(duration, path)| (*duration, context.load(path)))
+                        .collect()
+                })
+                .collect(),
+        }
+    }
+}
+
 impl RonAsset for MapAsset {
     type Asset = MapDefinition;
     const EXTENSION: &str = "map";
@@ -77,7 +108,25 @@ impl RonAsset for MapAsset {
             scene: Default::default(),
             icon: context.load(&self.icon),
             waypoints: self.waypoints.clone(),
-            paths: Default::default(),
+            paths: self
+                .paths
+                .iter()
+                .map(|path| EnemyPath {
+                    waypoints: path.waypoints.clone(),
+                    spawner: EnemySpawnPoint {
+                        spawns: path
+                            .spawner
+                            .spawns
+                            .iter()
+                            .map(|wave| {
+                                wave.iter()
+                                    .map(|(duration, path)| (*duration, context.load(path)))
+                                    .collect()
+                            })
+                            .collect(),
+                    },
+                })
+                .collect(),
             waves: self
                 .paths
                 .iter()
