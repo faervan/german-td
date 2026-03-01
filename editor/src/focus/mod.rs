@@ -64,7 +64,6 @@ impl FocusableEntity {
                  input: Res<ButtonInput<KeyCode>>,
                  mut focused: ResMut<FocusedEntities>| {
                     if event.selected && !event.all {
-                        debug!("select event triggered for {}", event.target);
                         if input.pressed(KeyCode::ShiftLeft) {
                             focused.entities.push(event.event_target());
                         } else {
@@ -239,10 +238,8 @@ fn select_all(
     mut commands: Commands,
     query: Query<Entity, With<FocusableEntity>>,
 ) {
-    debug!("select_all");
     for entity in query {
         if !focused.entities.contains(&entity) {
-            debug!("triggering select for {entity}");
             commands
                 .entity(entity)
                 .trigger(|target| EntitySelectChange {
@@ -252,9 +249,7 @@ fn select_all(
                 });
         }
     }
-    debug!("focused entities before: {:?}", focused.entities);
     focused.entities = query.iter().collect();
-    debug!("focused entities after: {:?}", focused.entities);
 }
 
 #[derive(Asset, AsBindGroup, Reflect, Debug, Clone, Default)]

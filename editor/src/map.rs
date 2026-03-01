@@ -11,7 +11,12 @@ pub(super) fn plugin(app: &mut App) {
 
     app.add_systems(
         Update,
-        (spawn_waypoints, spawn_plots, spawn_paths).run_if(in_state(State::Editor)),
+        (
+            spawn_waypoints,
+            spawn_plots,
+            spawn_paths.after(spawn_waypoints),
+        )
+            .run_if(in_state(State::Editor)),
     );
     app.add_systems(Update, draw_paths.run_if(in_state(State::Editor)));
     app.add_systems(
@@ -261,12 +266,11 @@ pub fn save(
                             .unwrap(),
                     );
                     next_entity = path.connections.iter().find_map(|(x, y)| {
-                        if used_waypoint_entities.contains(&entity) {
-                            return None;
-                        }
-                        (*x == entity)
+                        (*x == entity && !used_waypoint_entities.contains(y))
                             .then_some(y)
-                            .or_else(|| (*y == entity).then_some(x))
+                            .or_else(|| {
+                                (*y == entity && !used_waypoint_entities.contains(x)).then_some(x)
+                            })
                             .copied()
                     });
                     used_waypoint_entities.push(entity);
