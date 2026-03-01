@@ -43,3 +43,64 @@ fn spawn_maps(
         ));
     }
 }
+
+#[derive(Debug, Component, Reflect)]
+#[component(on_add)]
+#[reflect(Component)]
+pub struct Spawner {
+    map_definition: Handle<MapDefinition>,
+    path_index: usize,
+    spawn_index: usize,
+    timer: Timer,
+}
+
+impl Spawner {
+    pub fn new(map_definition: Handle<MapDefinition>, path_index: usize) -> Self {
+        Self {
+            map_definition,
+            path_index,
+            spawn_index: 0,
+            timer: Default::default(),
+        }
+    }
+
+    // Set up timer
+    fn on_add(mut world: DeferredWorld, ctx: HookContext) {
+        let spawner = world.get::<Self>(ctx.entity).expect("Added component is unavailable in on_add hook");
+        let mut timer = Timer::default();
+
+        if let Some(map_definitions) = world.get_resource::<Assets<MapDefinition>>() {
+            if let Some(map_definition) = map_definitions.get(&spawner.map_definition) {
+                if let Some(path) = map_definition.paths.get(spawner.path_index) {
+                    if let Some(first_wave) = path.spawner.spawns.first() {
+                        if let Some((duration, _)) = first_wave.last() {
+                            timer = Timer::new(*duration, TimerMode::Once);
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut spawner = world.get_mut::<Self>(ctx.entity).expect("Added component is unavailable in on_add hook");
+        spawner.timer = timer;
+    }
+}
+
+fn spawn_from_spawner(time: Res<Time>, mut spawners: Query<&mut Spawner>, map_definitions: Res<Assets<MapDefinition>>) {
+    for mut spawner in &mut spawners {
+        if spawner.timer.tick(time.delta()).just_finished() {
+            // Spawn enemy
+            if let Some(map_definition) = map_definitions.get(&spawner.map_definition) {
+                if let Some(path) = map_definition.paths.get(spawner.path_index) {
+                    if let Some(first_wave) = path.spawner.spawns.first() {
+                        if let Some(spawn) = first_wave.iter().nth_back(spawner.spawn_index) {
+                            
+                        }
+                    }
+                }
+            }
+
+            spawner.spawn_index += 1;
+        }
+    }
+}
