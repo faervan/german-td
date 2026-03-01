@@ -1,3 +1,6 @@
+use std::path::PathBuf;
+
+use bevy::ecs::system::RunSystemOnce as _;
 use german_td_core::{asset_plugin, default_plugins};
 
 mod prelude;
@@ -53,7 +56,7 @@ fn main() {
 
     app.add_systems(
         Update,
-        exit_game
+        save_and_exit
             .run_if(input_pressed(KeyCode::ControlLeft).and(input_just_pressed(KeyCode::KeyQ))),
     );
 
@@ -76,6 +79,27 @@ fn toggle_aabb_gizmo(mut config: ResMut<GizmoConfigStore>) {
     config.draw_all = !config.draw_all;
 }
 
-fn exit_game(mut exit: MessageWriter<AppExit>) {
-    exit.write(AppExit::Success);
+fn save_and_exit(world: &mut World) {
+    if let Err(e) = world.run_system_once(map::save) {
+        error!("Failed to save map: {e}");
+    }
+    let map_strings = world
+        .resource_mut::<Assets<MapDefinition>>()
+        .iter_mut()
+        .filter_map(|(_, def)| def.serialize().ok())
+        .collect::<Vec<_>>();
+    for (name, serialized_string) in map_strings {
+        let mut manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        manifest_dir.pop();
+        let Some(manifest_dir_str) = manifest_dir.to_str() else {
+            error!("{} cannot be converted to str", manifest_dir.display());
+            continue;
+        };
+        let path = PathBuf::from_iter([manifest_dir_str, "assets", "maps", &format!("{name}.map")]);
+        info!("Saving map {name} to {}", path.display());
+        if let Err(e) = std::fs::write(path, serialized_string) {
+            error!("Saving failed: {e}");
+        }
+    }
+    world.write_message(AppExit::Success);
 }

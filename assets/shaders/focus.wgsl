@@ -55,7 +55,7 @@ fn fragment(
 		out.color *= 2.;
 		out.color.r = 1.;
 	} else 	if focus_material.highlight == 2. {
-		/// Hovered
+		/// Selected
 		out.color *= 2.;
 		out.color.b = 1.;
 	}

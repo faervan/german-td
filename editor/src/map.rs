@@ -91,3 +91,26 @@ fn spawn_plots(
             );
     }
 }
+
+pub fn save(
+    mut definitions: ResMut<Assets<MapDefinition>>,
+    map: Query<&Map>,
+    waypoints: Query<&Transform, With<Waypoint>>,
+    plots: Query<&Transform, With<TowerPlot>>,
+) {
+    let Ok(map) = map.single() else {
+        return;
+    };
+    let Some(definition) = definitions.get_mut(&map.definition) else {
+        warn!("Failed to save map data: no MapDefinition found for handle");
+        return;
+    };
+    definition.waypoints = waypoints
+        .iter()
+        .map(|transform| transform.translation)
+        .collect();
+    definition.tower_plots = plots
+        .iter()
+        .map(|transform| transform.translation)
+        .collect();
+}

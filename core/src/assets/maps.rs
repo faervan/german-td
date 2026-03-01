@@ -13,7 +13,7 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
     }
 }
 
-#[derive(TypePath, Debug, Serialize, Deserialize)]
+#[derive(TypePath, Default, Debug, Serialize, Deserialize)]
 struct MapAsset {
     name: String,
     gltf: String,
@@ -25,6 +25,7 @@ struct MapAsset {
 
 #[derive(Asset, Reflect, Debug)]
 #[reflect(Asset)]
+/// TODO! Some fields like `self.name` can be replaced with `self.name()` pointing to the inner asset
 pub struct MapDefinition {
     pub name: String,
     pub gltf: Handle<Gltf>,
@@ -37,7 +38,16 @@ pub struct MapDefinition {
     /// Positions at which towers can be placed
     pub tower_plots: Vec<Vec3>,
     #[reflect(ignore)]
-    asset: Option<MapAsset>,
+    asset: MapAsset,
+}
+
+impl MapDefinition {
+    /// Returns (name, serialized asset) on success
+    pub fn serialize(&mut self) -> Result<(String, String), ron::Error> {
+        self.asset.waypoints = self.waypoints.clone();
+        self.asset.tower_plots = self.tower_plots.clone();
+        ron::to_string(&self.asset).map(|s| (self.name.clone(), s))
+    }
 }
 
 #[derive(Reflect, Debug, Serialize, Deserialize)]
@@ -55,7 +65,8 @@ pub struct EnemyPath {
 
 #[derive(Reflect, Debug, Serialize, Deserialize)]
 struct EnemySpawnPointAsset {
-    spawns: Vec<Vec<(Timer, String)>>,
+    /// `u64` represents milliseconds, the String is the name of an enemy
+    spawns: Vec<Vec<(u64, String)>>,
 }
 
 #[derive(Reflect, Debug)]
@@ -85,7 +96,7 @@ impl RonAsset for MapAsset {
                 .max()
                 .unwrap_or_default(),
             tower_plots: self.tower_plots.clone(),
-            asset: Some(self),
+            asset: self,
         }
     }
 }
@@ -101,9 +112,9 @@ impl AssetLoadedHook for MapDefinition {
         let gltf = world.resource::<Assets<Gltf>>().get(&self.gltf).unwrap();
         self.scene = gltf.default_scene.clone().expect("Missing default scene");
 
-        let asset = self.asset.take().unwrap();
         let mut enemies = world.resource_mut::<Assets<EnemyDefinition>>();
-        let mut enemy_ids: HashMap<_, _> = asset
+        let mut enemy_ids: HashMap<_, _> = self
+            .asset
             .paths
             .iter()
             .flat_map(|p| &p.spawner.spawns)
@@ -116,23 +127,27 @@ impl AssetLoadedHook for MapDefinition {
             }
         }
 
-        self.paths = asset
+        self.paths = self
+            .asset
             .paths
-            .into_iter()
+            .iter()
             .map(|path| EnemyPath {
-                waypoints: path.waypoints,
+                waypoints: path.waypoints.clone(),
                 spawner: EnemySpawnPoint {
                     spawns: path
                         .spawner
                         .spawns
-                        .into_iter()
+                        .iter()
                         .map(|wave| {
-                            wave.into_iter()
-                                .flat_map(|(timer, name)| {
+                            wave.iter()
+                                .flat_map(|(duration_ms, name)| {
                                     Some((
-                                        timer,
+                                        Timer::new(
+                                            Duration::from_millis(*duration_ms),
+                                            TimerMode::Once,
+                                        ),
                                         enemies.get_strong_handle(
-                                            enemy_ids[&name].inspect_none(|| {
+                                            enemy_ids[name].inspect_none(|| {
                                                 warn!("No EnemyDefinition with name {name} loaded!")
                                             })?,
                                         )?,
