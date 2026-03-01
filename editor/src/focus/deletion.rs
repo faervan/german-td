@@ -7,7 +7,7 @@ pub(super) fn plugin(app: &mut App) {
     );
 }
 
-/// TODO! only trigger when cursor is in 3d viewport
+/// TODO! only trigger when cursor is in 3d viewport (not over ui)
 fn despawn_selected(
     mut commands: Commands,
     mut focused: ResMut<FocusedEntities>,

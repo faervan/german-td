@@ -1,3 +1,5 @@
+use bevy_inspector_egui::bevy_inspector::ui_for_value;
+use egui::Ui;
 use german_td_core::assets::maps::EnemySpawnPoint;
 
 use crate::{focus::EntitySelectChange, prelude::*};
@@ -175,10 +177,6 @@ fn spawn_paths(
                     }
                 })
                 .collect();
-            // TODO! remove this and allow path selection via UI
-            if !paths.paths.is_empty() {
-                paths.editing = Some(0);
-            }
         }
     }
 }
@@ -225,6 +223,52 @@ fn add_path_connection(
     } else {
         warn!("Exactly one or two waypoints need to be selected");
     }
+}
+
+pub fn path_edit_ui(world: &mut World, ui: &mut Ui) {
+    world.resource_scope(|world, mut paths: Mut<EnemyPaths>| {
+        match paths.editing {
+            Some(index) => {
+                ui.label(format!("Editing path: {index}"));
+                if ui.button("Clear editing").clicked() {
+                    paths.editing = None;
+                }
+            }
+            None => {
+                ui.label("Editing path: None");
+            }
+        }
+        if ui.button("Add new path").clicked() {
+            paths.paths.push(Default::default());
+        }
+        let mut editing = None;
+        let mut delete = None;
+        for (index, path) in paths.paths.iter_mut().enumerate() {
+            ui.separator();
+            ui.collapsing(format!("Path {index}:"), |ui| {
+                if ui.button("Select for editing").clicked() {
+                    editing = Some(index);
+                }
+                if ui.button("Delete path").clicked() {
+                    delete = Some(index);
+                }
+                ui_for_value(path, ui, world);
+            });
+        }
+        if editing.is_some() {
+            paths.editing = editing;
+        }
+        if let Some(index) = delete.take() {
+            if let Some(edit_index) = paths.editing {
+                if edit_index == index {
+                    paths.editing = None;
+                } else if edit_index > index {
+                    paths.editing = Some(edit_index - 1);
+                }
+            }
+            paths.paths.remove(index);
+        }
+    });
 }
 
 pub fn save(

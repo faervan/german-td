@@ -162,6 +162,11 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                             ui_for_entity_with_children(self.world, entity, ui);
                         });
                     }
+
+                    ui.separator();
+
+                    ui.label("Paths");
+                    crate::map::path_edit_ui(self.world, ui);
                 });
             }
             EguiWindow::WorldInspector => {
