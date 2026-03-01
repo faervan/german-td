@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::{focus::movement::Moving, prelude::*};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
@@ -8,8 +8,23 @@ pub(super) fn plugin(app: &mut App) {
 }
 
 /// TODO! only trigger when cursor is in 3d viewport
-fn despawn_selected(mut commands: Commands, mut focused: ResMut<FocusedEntities>) {
-    for entity in focused.entities.drain(..) {
-        commands.entity(entity).despawn();
+fn despawn_selected(
+    mut commands: Commands,
+    mut focused: ResMut<FocusedEntities>,
+    query: Query<
+        (),
+        (
+            With<FocusableEntity>,
+            Without<Moving>,
+            Without<EditorCursor>,
+        ),
+    >,
+) {
+    for entity in std::mem::take(&mut focused.entities) {
+        if query.contains(entity) {
+            commands.entity(entity).despawn();
+        } else {
+            focused.entities.push(entity);
+        }
     }
 }

@@ -19,7 +19,7 @@ pub(super) fn plugin(app: &mut App) {
 }
 
 #[derive(Component, Default)]
-struct Moving {
+pub(super) struct Moving {
     start_pos: Vec3,
     axis: Option<Axis>,
     local: bool,
