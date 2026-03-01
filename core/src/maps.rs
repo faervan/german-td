@@ -1,8 +1,9 @@
-use crate::{assets::maps::EnemyPath, prelude::*};
+use crate::prelude::*;
 
 pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
     move |app: &mut App| {
         app.add_message::<SpawnMap>();
+        app.add_message::<SpawnSpawners>();
 
         app.add_systems(
             Update,
@@ -11,7 +12,14 @@ pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
                 .run_if(in_state(game_state)),
         );
 
-        app.add_systems(Update, spawn_from_spawner);
+        app.add_systems(
+            Update,
+            spawn_spawners
+                .run_if(on_message::<SpawnSpawners>)
+                .run_if(in_state(game_state)),
+        );
+
+        app.add_systems(Update, spawn_from_spawner.run_if(in_state(game_state)));
     }
 }
 
@@ -46,23 +54,20 @@ fn spawn_maps(
     }
 }
 
+/// Spawner per wave
 #[derive(Debug, Component, Reflect)]
 #[reflect(Component)]
 pub struct Spawner {
     position: Vec3,
-    enemy_path: EnemyPath,
-    current_spawn: Option<(Duration, Handle<EnemyDefinition>)>,
-    current_wave: usize,
+    spawns: Vec<(Duration, Handle<EnemyDefinition>)>,
     elapsed: Duration,
 }
 
 impl Spawner {
-    pub fn new(enemy_path: EnemyPath, position: Vec3) -> Self {
+    pub fn new(position: Vec3, spawns: Vec<(Duration, Handle<EnemyDefinition>)>) -> Self {
         Self {
             position,
-            enemy_path,
-            current_spawn: None,
-            current_wave: 0,
+            spawns,
             elapsed: Duration::ZERO,
         }
     }
@@ -74,33 +79,52 @@ fn spawn_from_spawner(
     mut spawn_enemy: MessageWriter<SpawnEnemy>,
 ) {
     for mut spawner in &mut spawners {
-        let current_wave = spawner.current_wave;
-        let mut current_spawn = spawner.current_spawn.clone();
-        let mut elapsed = spawner.elapsed;
-        let position = spawner.position;
+        if let Some(spawn) = spawner.spawns.last().cloned() {
+            spawner.elapsed += time.delta();
 
-        if let Some(current_wave) = spawner.enemy_path.spawner.spawns.get_mut(current_wave) {
-            if current_spawn.is_none() {
-                current_spawn = current_wave.pop();
-            }
-
-            elapsed += time.delta();
-
-            if let Some(ref spawn) = current_spawn
-                && elapsed >= spawn.0
-            {
+            if spawner.elapsed > spawn.0 {
                 spawn_enemy.write(SpawnEnemy {
-                    position,
+                    position: spawner.position,
                     definition: spawn.1.clone(),
                 });
 
-                elapsed -= spawn.0;
+                spawner.elapsed -= spawn.0;
 
-                current_spawn = current_wave.pop();
+                spawner.spawns.pop();
             }
         }
+    }
+}
 
-        spawner.current_spawn = current_spawn;
-        spawner.elapsed = elapsed;
+#[derive(Debug, Message, Reflect)]
+pub struct SpawnSpawners {
+    map_definition: Handle<MapDefinition>,
+    wave: usize,
+}
+
+fn spawn_spawners(
+    mut events: MessageReader<SpawnSpawners>,
+    mut commands: Commands,
+    definitions: Res<Assets<MapDefinition>>,
+) {
+    for spawn in events.read() {
+        let map_definition = definitions.get(&spawn.map_definition).unwrap();
+        info!(
+            "Spawning spawners for {} wave {}",
+            map_definition.name, spawn.wave
+        );
+
+        for (i, path) in map_definition.paths.iter().enumerate() {
+            let position = map_definition
+                .waypoints
+                .get(*path.waypoints.first().unwrap())
+                .unwrap();
+            let spawns = path.spawner.spawns.get(spawn.wave).unwrap();
+
+            commands.spawn((
+                Name::new(format!("Spawner {} at {}", i, position)),
+                Spawner::new(*position, spawns.clone()),
+            ));
+        }
     }
 }
