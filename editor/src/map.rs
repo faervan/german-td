@@ -1,35 +1,46 @@
 use crate::{focus::EntitySelectChange, prelude::*};
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_message::<Waypoint>();
-    app.add_message::<TowerPlot>();
+    app.add_message::<SpawnWaypoint>();
+    app.add_message::<SpawnTowerPlot>();
 
     app.add_systems(Update, spawn_waypoints.run_if(in_state(State::Editor)));
     app.add_systems(Update, spawn_plots.run_if(in_state(State::Editor)));
 }
 
-#[derive(Component, Message, Reflect)]
+#[derive(Component, Reflect)]
 #[reflect(Component)]
 pub struct Waypoint;
 
-#[derive(Component, Message, Reflect)]
+#[derive(Message)]
+pub struct SpawnWaypoint {
+    pub position: Option<Vec3>,
+}
+
+#[derive(Component, Reflect)]
 #[reflect(Component)]
 pub struct TowerPlot;
 
+#[derive(Message)]
+pub struct SpawnTowerPlot {
+    pub position: Option<Vec3>,
+}
+
 fn spawn_waypoints(
     mut commands: Commands,
-    mut events: MessageReader<Waypoint>,
+    mut events: MessageReader<SpawnWaypoint>,
     transform: Single<&Transform, With<EditorCursor>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    for _ in events.read() {
+    for spawn in events.read() {
+        let position = spawn.position.unwrap_or(transform.translation);
         commands
             .spawn((
                 Name::new("Waypoint"),
                 Waypoint,
                 FocusableEntity,
-                **transform,
+                Transform::from_translation(position),
                 Mesh3d(meshes.add(Sphere::new(2.))),
                 MeshMaterial3d(
                     materials.add(StandardMaterial::from_color(Color::srgba(1., 0., 0., 0.7))),
@@ -56,18 +67,20 @@ fn spawn_waypoints(
 
 fn spawn_plots(
     mut commands: Commands,
-    mut events: MessageReader<TowerPlot>,
+    mut events: MessageReader<SpawnTowerPlot>,
     transform: Single<&Transform, With<EditorCursor>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    for _ in events.read() {
+    for spawn in events.read() {
+        let position = spawn.position.unwrap_or(transform.translation);
         commands
             .spawn((
                 Name::new("TowerPlot"),
                 TowerPlot,
                 FocusableEntity,
-                transform.with_rotation(Quat::from_rotation_x(-PI / 2.)),
+                Transform::from_translation(position)
+                    .with_rotation(Quat::from_rotation_x(-PI / 2.)),
                 Mesh3d(meshes.add(Circle::new(3.))),
                 MeshMaterial3d(
                     materials.add(StandardMaterial::from_color(Color::srgba(1., 0., 0., 0.7))),

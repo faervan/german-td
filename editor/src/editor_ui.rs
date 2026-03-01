@@ -10,7 +10,7 @@ use bevy_inspector_egui::{
 use egui::LayerId;
 use egui_dock::{DockArea, DockState, NodeIndex, Style};
 
-use crate::{prelude::*, save_and_exit};
+use crate::{and_exit, prelude::*, save};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins(bevy_egui::EguiPlugin::default());
@@ -162,11 +162,15 @@ impl egui_dock::TabViewer for TabViewer<'_> {
             }
             EguiWindow::Options => {
                 ui.vertical(|ui| {
+                    if ui.button("Save").clicked() {
+                        save(self.world);
+                    }
                     if ui.button("Quit editor without saving").clicked() {
                         self.world.write_message(AppExit::Success);
                     }
                     if ui.button("Close editor after saving").clicked() {
-                        save_and_exit(self.world);
+                        save(self.world);
+                        and_exit(self.world);
                     }
                 });
             }

@@ -2,10 +2,7 @@ use bevy::window::PrimaryWindow;
 use bevy_egui::{EguiContext, EguiPrimaryContextPass};
 use egui::Ui;
 
-use crate::{
-    map::{TowerPlot, Waypoint},
-    prelude::*,
-};
+use crate::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_sub_state::<MenuActive>();
@@ -99,7 +96,7 @@ fn spawn_tower(world: &mut World, ui: &mut Ui) {
 
 fn spawn_waypoint(world: &mut World, ui: &mut Ui) {
     if ui.button("Spawn Waypoint").clicked() {
-        world.write_message(Waypoint);
+        world.write_message(SpawnWaypoint { position: None });
 
         close_menu(world);
     }
@@ -107,7 +104,7 @@ fn spawn_waypoint(world: &mut World, ui: &mut Ui) {
 
 fn spawn_plot(world: &mut World, ui: &mut Ui) {
     if ui.button("Spawn TowerPlot").clicked() {
-        world.write_message(TowerPlot);
+        world.write_message(SpawnTowerPlot { position: None });
 
         close_menu(world);
     }

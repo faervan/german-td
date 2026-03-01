@@ -56,7 +56,12 @@ fn main() {
 
     app.add_systems(
         Update,
-        save_and_exit
+        save.run_if(input_pressed(KeyCode::ControlLeft).and(input_just_pressed(KeyCode::KeyS))),
+    );
+    app.add_systems(
+        Update,
+        (save, and_exit)
+            .chain()
             .run_if(input_pressed(KeyCode::ControlLeft).and(input_just_pressed(KeyCode::KeyQ))),
     );
 
@@ -79,7 +84,7 @@ fn toggle_aabb_gizmo(mut config: ResMut<GizmoConfigStore>) {
     config.draw_all = !config.draw_all;
 }
 
-fn save_and_exit(world: &mut World) {
+fn save(world: &mut World) {
     if let Err(e) = world.run_system_once(map::save) {
         error!("Failed to save map: {e}");
     }
@@ -101,5 +106,8 @@ fn save_and_exit(world: &mut World) {
             error!("Saving failed: {e}");
         }
     }
+}
+
+fn and_exit(world: &mut World) {
     world.write_message(AppExit::Success);
 }
