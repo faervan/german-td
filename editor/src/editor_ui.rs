@@ -153,7 +153,14 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                     ui.label("Selected entities:");
                     let focused = self.world.resource::<FocusedEntities>();
                     for entity in focused.entities.clone() {
-                        ui_for_entity_with_children(self.world, entity, ui);
+                        let name = self
+                            .world
+                            .get::<Name>(entity)
+                            .map(|n| n.as_str())
+                            .unwrap_or_default();
+                        ui.collapsing(format!("{name} ({entity})"), |ui| {
+                            ui_for_entity_with_children(self.world, entity, ui);
+                        });
                     }
                 });
             }

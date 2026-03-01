@@ -1,3 +1,5 @@
+use ron::ser::PrettyConfig;
+
 use crate::{
     assets::{AssetLoadedHook, AssetNameExt, RonAsset, RonAssetLoader},
     prelude::*,
@@ -43,10 +45,38 @@ pub struct MapDefinition {
 
 impl MapDefinition {
     /// Returns (name, serialized asset) on success
-    pub fn serialize(&mut self) -> Result<(String, String), ron::Error> {
+    pub fn serialize(
+        &mut self,
+        enemies: &Assets<EnemyDefinition>,
+    ) -> Result<(String, String), ron::Error> {
         self.asset.waypoints = self.waypoints.clone();
         self.asset.tower_plots = self.tower_plots.clone();
-        ron::to_string(&self.asset).map(|s| (self.name.clone(), s))
+        self.asset.paths = self
+            .paths
+            .iter()
+            .map(|path| EnemyPathAsset {
+                waypoints: path.waypoints.clone(),
+                spawner: EnemySpawnPointAsset {
+                    spawns: path
+                        .spawner
+                        .spawns
+                        .iter()
+                        .map(|wave| {
+                            wave.iter()
+                                .filter_map(|(timer, enemy_handle)| {
+                                    Some((
+                                        timer.duration().as_millis() as u64,
+                                        enemies.get(enemy_handle)?.name.clone(),
+                                    ))
+                                })
+                                .collect()
+                        })
+                        .collect(),
+                },
+            })
+            .collect();
+        ron::ser::to_string_pretty(&self.asset, PrettyConfig::default())
+            .map(|s| (self.name.clone(), s))
     }
 }
 

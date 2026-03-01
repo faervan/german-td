@@ -28,7 +28,8 @@ fn setup(mut commands: Commands) {
     info!(
         "\nCamera controls:\n\
         WASD, Space/Shift+Space to move\n\
-        Hold right click + move cursor to rotate\n\n\
+        Hold right click + move cursor to rotate\n\
+        \n\
         Keybinds:\n\
         <LeftMouse> on entity to select\n\
         <S-LeftMouse> on entity to add to selection (keep previous selected)\n\
@@ -40,7 +41,10 @@ fn setup(mut commands: Commands) {
         <Esc> to cancel selection movement\n\
         <LeftMouse> to confirm selection movement\n\
         <C-RightMouse> to move selected to cursor position\n\
-        <C-q> to quit\n\
+        <f> to connect two selected waypoints or to mark waypoint as spawner\n\
+        \n\
+        <C-s> to save\n\
+        <C-q> to save and quit\n\
         <C-a> to open the spawn menu\n\
         <Esc> to close the floating menus\n\
         <A-g> to toggle aabb gizmo"

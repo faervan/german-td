@@ -1,7 +1,7 @@
 pub mod prelude;
 use prelude::*;
 
-mod assets;
+pub mod assets;
 mod components;
 mod enemy;
 mod maps;

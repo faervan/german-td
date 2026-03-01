@@ -18,6 +18,7 @@ pub type MapLibrary<'a> = Res<'a, AssetLibrary<MapDefinition>>;
 pub type TowerLibrary<'a> = Res<'a, AssetLibrary<TowerDefinition>>;
 pub type ProjectileLibrary<'a> = Res<'a, AssetLibrary<ProjectileDefinition>>;
 
+pub use crate::assets;
 pub use crate::assets::AssetLibrary;
 pub use crate::assets::AssetResourceLoader as _;
 pub use crate::assets::LibraryInitExt as _;

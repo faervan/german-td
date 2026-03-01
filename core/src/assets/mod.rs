@@ -9,10 +9,10 @@ pub use resource_loader::*;
 mod library;
 pub use library::*;
 
-pub(crate) mod enemies;
-pub(crate) mod maps;
-pub(crate) mod projectile;
-pub(crate) mod towers;
+pub mod enemies;
+pub mod maps;
+pub mod projectile;
+pub mod towers;
 
 pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin {
     move |app: &mut App| {

@@ -1,11 +1,23 @@
+use german_td_core::assets::maps::EnemySpawnPoint;
+
 use crate::{focus::EntitySelectChange, prelude::*};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_message::<SpawnWaypoint>();
     app.add_message::<SpawnTowerPlot>();
+    app.add_message::<SpawnEnemyPaths>();
 
-    app.add_systems(Update, spawn_waypoints.run_if(in_state(State::Editor)));
-    app.add_systems(Update, spawn_plots.run_if(in_state(State::Editor)));
+    app.init_resource::<EnemyPaths>();
+
+    app.add_systems(
+        Update,
+        (spawn_waypoints, spawn_plots, spawn_paths).run_if(in_state(State::Editor)),
+    );
+    app.add_systems(Update, draw_paths.run_if(in_state(State::Editor)));
+    app.add_systems(
+        Update,
+        add_path_connection.run_if(in_state(State::Editor).and(input_just_pressed(KeyCode::KeyF))),
+    );
 }
 
 #[derive(Component, Reflect)]
@@ -24,6 +36,27 @@ pub struct TowerPlot;
 #[derive(Message)]
 pub struct SpawnTowerPlot {
     pub position: Option<Vec3>,
+}
+
+#[derive(Resource, Reflect, Default)]
+#[reflect(Resource, Default)]
+pub struct EnemyPaths {
+    /// The currently edited path index, if any
+    editing: Option<usize>,
+    paths: Vec<EnemyPath>,
+}
+
+#[derive(Reflect, Default)]
+#[reflect(Default)]
+struct EnemyPath {
+    /// Connections between two waypoint entities
+    connections: Vec<(Entity, Entity)>,
+    spawner: Option<Entity>,
+}
+
+#[derive(Message)]
+pub struct SpawnEnemyPaths {
+    pub map_definition: Handle<MapDefinition>,
 }
 
 fn spawn_waypoints(
@@ -105,11 +138,96 @@ fn spawn_plots(
     }
 }
 
+fn spawn_paths(
+    mut paths: ResMut<EnemyPaths>,
+    mut events: MessageReader<SpawnEnemyPaths>,
+    map_defs: Res<Assets<MapDefinition>>,
+    waypoints: Query<(&Transform, Entity), With<Waypoint>>,
+) {
+    for event in events.read() {
+        if let Some(definition) = map_defs.get(&event.map_definition) {
+            paths.paths = definition
+                .paths
+                .iter()
+                .map(|path| {
+                    let mut connections = vec![];
+                    let mut last_entity = None;
+                    for waypoint_index in &path.waypoints {
+                        let Some(new_entity) = waypoints.iter().find_map(|(transform, entity)| {
+                            (transform.translation == definition.waypoints[*waypoint_index])
+                                .then_some(entity)
+                        }) else {
+                            continue;
+                        };
+                        if let Some(entity) = last_entity.take() {
+                            connections.push((entity, new_entity));
+                        }
+                        last_entity = Some(new_entity);
+                    }
+                    EnemyPath {
+                        spawner: connections.first().map(|(e, _)| *e),
+                        connections,
+                    }
+                })
+                .collect();
+            // TODO! remove this and allow path selection via UI
+            if !paths.paths.is_empty() {
+                paths.editing = Some(0);
+            }
+        }
+    }
+}
+
+fn draw_paths(
+    mut gizmos: Gizmos,
+    paths: Res<EnemyPaths>,
+    query: Query<&Transform, With<Waypoint>>,
+) {
+    // Unfortunate naming here
+    for (path_index, path) in paths.paths.iter().enumerate() {
+        for connection in &path.connections {
+            if let Ok(w1) = query.get(connection.0)
+                && let Ok(w2) = query.get(connection.1)
+            {
+                let color = match paths.editing {
+                    Some(index) if index == path_index => Color::srgb(1., 0., 1.),
+                    Some(_) => Color::srgba(1., 0., 1., 0.5),
+                    None => Color::srgba(1., 0., 1., 0.8),
+                };
+                gizmos.line(w1.translation, w2.translation, color);
+            }
+        }
+    }
+}
+
+fn add_path_connection(
+    mut paths: ResMut<EnemyPaths>,
+    focused: Res<FocusedEntities>,
+    query: Query<(), With<Waypoint>>,
+) {
+    let Some(path_index) = paths.editing else {
+        warn!("No path selected!");
+        return;
+    };
+    let all_are_waypoints = focused.entities.iter().all(|id| query.contains(*id));
+    if focused.entities.len() == 1 && all_are_waypoints {
+        paths.paths[path_index].spawner = Some(focused.entities[0]);
+        info!("Setting {} as EnemySpawnPoint of path", focused.entities[0]);
+    } else if focused.entities.len() == 2 && all_are_waypoints {
+        paths.paths[path_index]
+            .connections
+            .push((focused.entities[0], focused.entities[1]));
+    } else {
+        warn!("Exactly one or two waypoints need to be selected");
+    }
+}
+
 pub fn save(
     mut definitions: ResMut<Assets<MapDefinition>>,
     map: Query<&Map>,
     waypoints: Query<&Transform, With<Waypoint>>,
     plots: Query<&Transform, With<TowerPlot>>,
+    paths: Res<EnemyPaths>,
 ) {
     let Ok(map) = map.single() else {
         return;
@@ -125,5 +243,39 @@ pub fn save(
     definition.tower_plots = plots
         .iter()
         .map(|transform| transform.translation)
+        .collect();
+    definition.paths = paths
+        .paths
+        .iter()
+        .map(|path| {
+            let mut path_waypoints = vec![];
+            let mut used_waypoint_entities = vec![];
+            let mut next_entity = path.spawner;
+            while let Some(entity) = next_entity {
+                if let Ok(transform) = waypoints.get(entity) {
+                    path_waypoints.push(
+                        definition
+                            .waypoints
+                            .iter()
+                            .position(|pos| *pos == transform.translation)
+                            .unwrap(),
+                    );
+                    next_entity = path.connections.iter().find_map(|(x, y)| {
+                        if used_waypoint_entities.contains(&entity) {
+                            return None;
+                        }
+                        (*x == entity)
+                            .then_some(y)
+                            .or_else(|| (*y == entity).then_some(x))
+                            .copied()
+                    });
+                    used_waypoint_entities.push(entity);
+                }
+            }
+            crate::prelude::assets::maps::EnemyPath {
+                waypoints: path_waypoints,
+                spawner: EnemySpawnPoint { spawns: vec![] },
+            }
+        })
         .collect();
 }

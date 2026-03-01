@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::{map::SpawnEnemyPaths, prelude::*};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(OnEnter(State::Editor), setup);
@@ -15,6 +15,7 @@ fn setup(mut map_spawner: MessageWriter<SpawnMap>, map_lib: MapLibrary) {
 fn spawn_map_items(
     mut waypoints: MessageWriter<SpawnWaypoint>,
     mut plots: MessageWriter<SpawnTowerPlot>,
+    mut paths: MessageWriter<SpawnEnemyPaths>,
     maps: Res<Assets<MapDefinition>>,
     query: Query<&Map, Added<Map>>,
 ) {
@@ -31,6 +32,10 @@ fn spawn_map_items(
                     position: Some(*plot),
                 });
             }
+
+            paths.write(SpawnEnemyPaths {
+                map_definition: map.definition.clone(),
+            });
         }
     }
 }
