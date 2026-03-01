@@ -2,8 +2,11 @@ use crate::prelude::*;
 
 pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
     move |app: &mut App| {
+        app.init_resource::<Wave>();
+
         app.add_message::<SpawnMap>();
         app.add_message::<SpawnSpawners>();
+        app.add_message::<StartWave>();
 
         app.add_systems(
             Update,
@@ -16,6 +19,13 @@ pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
             Update,
             spawn_spawners
                 .run_if(on_message::<SpawnSpawners>)
+                .run_if(in_state(game_state)),
+        );
+
+        app.add_systems(
+            Update,
+            start_wave
+                .run_if(on_message::<StartWave>)
                 .run_if(in_state(game_state)),
         );
 
@@ -125,6 +135,31 @@ fn spawn_spawners(
                 Name::new(format!("Spawner {} at {}", i, position)),
                 Spawner::new(*position, spawns.clone()),
             ));
+        }
+    }
+}
+
+// This is akward
+
+#[derive(Debug, Default, Resource, Reflect)]
+#[reflect(Resource)]
+pub struct Wave(pub usize);
+
+#[derive(Debug, Message, Reflect)]
+pub struct StartWave;
+
+fn start_wave(
+    mut start_wave: MessageReader<StartWave>,
+    maps: Query<&Map>,
+    mut spawn_spawners: MessageWriter<SpawnSpawners>,
+    wave: Res<Wave>,
+) {
+    for _ in start_wave.read() {
+        for map in &maps {
+            spawn_spawners.write(SpawnSpawners {
+                map_definition: map.definition.clone(),
+                wave: wave.0,
+            });
         }
     }
 }
