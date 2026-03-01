@@ -34,6 +34,7 @@ fn setup(mut commands: Commands) {
         <S-LeftMouse> on entity to add to selection (keep previous selected)\n\
         <S-a> to select all\n\
         <S-Esc> to unselect all\n\
+        <x> to despawn selected\n\
         <g> to move selection\n\
         <x>/<y>/<z> to restrict movement to axis (twice to local axis)\n\
         <Esc> to cancel selection movement\n\

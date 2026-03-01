@@ -5,11 +5,12 @@ use bevy::{
 
 use crate::prelude::*;
 
+mod deletion;
 mod movement;
 mod teleport;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_plugins((movement::plugin, teleport::plugin));
+    app.add_plugins((movement::plugin, teleport::plugin, deletion::plugin));
 
     app.init_resource::<FocusedEntities>();
 
