@@ -55,15 +55,15 @@ pub struct EnemyPath {
 
 #[derive(Reflect, Debug, Serialize, Deserialize)]
 struct EnemySpawnPointAsset {
-    spawns: Vec<Vec<(Timer, String)>>,
+    spawns: Vec<Vec<(Duration, String)>>,
 }
 
 #[derive(Reflect, Debug)]
 pub struct EnemySpawnPoint {
     /// `self.spawns[0]` contains the to-be-spawned definition of the first wave
     /// Spawning happens by taking the entries in the inner [`Vec`] back-to-front, waiting for the
-    /// [`Timer`] to finish and spawning the [`EnemyDefinition`].
-    pub spawns: Vec<Vec<(Timer, Handle<EnemyDefinition>)>>,
+    /// [`Duration`] to elapse and spawning the [`EnemyDefinition`].
+    pub spawns: Vec<Vec<(Duration, Handle<EnemyDefinition>)>>,
 }
 
 impl RonAsset for MapAsset {
