@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::{assets::maps::EnemyPath, prelude::*};
 
 pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
     move |app: &mut App| {
@@ -10,6 +10,8 @@ pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
                 .run_if(on_message::<SpawnMap>)
                 .run_if(in_state(game_state)),
         );
+
+        app.add_systems(Update, spawn_from_spawner);
     }
 }
 
@@ -45,62 +47,60 @@ fn spawn_maps(
 }
 
 #[derive(Debug, Component, Reflect)]
-#[component(on_add)]
 #[reflect(Component)]
 pub struct Spawner {
-    map_definition: Handle<MapDefinition>,
-    path_index: usize,
-    spawn_index: usize,
-    timer: Timer,
+    position: Vec3,
+    enemy_path: EnemyPath,
+    current_spawn: Option<(Duration, Handle<EnemyDefinition>)>,
+    current_wave: usize,
+    elapsed: Duration,
 }
 
 impl Spawner {
-    pub fn new(map_definition: Handle<MapDefinition>, path_index: usize) -> Self {
+    pub fn new(enemy_path: EnemyPath, position: Vec3) -> Self {
         Self {
-            map_definition,
-            path_index,
-            spawn_index: 0,
-            timer: Default::default(),
+            position,
+            enemy_path,
+            current_spawn: None,
+            current_wave: 0,
+            elapsed: Duration::ZERO,
         }
-    }
-
-    // Set up timer
-    fn on_add(mut world: DeferredWorld, ctx: HookContext) {
-        let spawner = world.get::<Self>(ctx.entity).expect("Added component is unavailable in on_add hook");
-        let mut timer = Timer::default();
-
-        if let Some(map_definitions) = world.get_resource::<Assets<MapDefinition>>() {
-            if let Some(map_definition) = map_definitions.get(&spawner.map_definition) {
-                if let Some(path) = map_definition.paths.get(spawner.path_index) {
-                    if let Some(first_wave) = path.spawner.spawns.first() {
-                        if let Some((duration, _)) = first_wave.last() {
-                            timer = Timer::new(*duration, TimerMode::Once);
-                        }
-                    }
-                }
-            }
-        }
-
-        let mut spawner = world.get_mut::<Self>(ctx.entity).expect("Added component is unavailable in on_add hook");
-        spawner.timer = timer;
     }
 }
 
-fn spawn_from_spawner(time: Res<Time>, mut spawners: Query<&mut Spawner>, map_definitions: Res<Assets<MapDefinition>>) {
+fn spawn_from_spawner(
+    time: Res<Time>,
+    mut spawners: Query<&mut Spawner>,
+    mut spawn_enemy: MessageWriter<SpawnEnemy>,
+) {
     for mut spawner in &mut spawners {
-        if spawner.timer.tick(time.delta()).just_finished() {
-            // Spawn enemy
-            if let Some(map_definition) = map_definitions.get(&spawner.map_definition) {
-                if let Some(path) = map_definition.paths.get(spawner.path_index) {
-                    if let Some(first_wave) = path.spawner.spawns.first() {
-                        if let Some(spawn) = first_wave.iter().nth_back(spawner.spawn_index) {
-                            
-                        }
-                    }
-                }
+        let current_wave = spawner.current_wave;
+        let mut current_spawn = spawner.current_spawn.clone();
+        let mut elapsed = spawner.elapsed;
+        let position = spawner.position;
+
+        if let Some(current_wave) = spawner.enemy_path.spawner.spawns.get_mut(current_wave) {
+            if current_spawn.is_none() {
+                current_spawn = current_wave.pop();
             }
 
-            spawner.spawn_index += 1;
+            elapsed += time.delta();
+
+            if let Some(ref spawn) = current_spawn
+                && elapsed >= spawn.0
+            {
+                spawn_enemy.write(SpawnEnemy {
+                    position,
+                    definition: spawn.1.clone(),
+                });
+
+                elapsed -= spawn.0;
+
+                current_spawn = current_wave.pop();
+            }
         }
+
+        spawner.current_spawn = current_spawn;
+        spawner.elapsed = elapsed;
     }
 }
