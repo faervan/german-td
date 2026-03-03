@@ -5,7 +5,8 @@ use crate::prelude::*;
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(
         Update,
-        set_movement.run_if(input_just_pressed(KeyCode::KeyG)),
+        set_movement
+            .run_if(input_just_pressed(KeyCode::KeyG).and(not(input_pressed(KeyCode::AltLeft)))),
     );
     app.add_systems(Update, (movement, set_axis, draw_axis_gizmo));
     app.add_systems(

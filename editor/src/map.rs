@@ -188,6 +188,17 @@ fn draw_paths(
 ) {
     // Unfortunate naming here
     for (path_index, path) in paths.paths.iter().enumerate() {
+        if let Some(entity) = path.spawner
+            && let Ok(transform) = query.get(entity)
+        {
+            gizmos.cube(
+                transform.with_scale(Vec3::splat(5.)),
+                match paths.editing == Some(path_index) {
+                    true => Color::srgb(1., 0., 1.),
+                    false => Color::srgba(1., 0., 1., 0.5),
+                },
+            );
+        }
         for connection in &path.connections {
             if let Ok(w1) = query.get(connection.0)
                 && let Ok(w2) = query.get(connection.1)
@@ -214,8 +225,13 @@ fn add_path_connection(
     };
     let all_are_waypoints = focused.entities.iter().all(|id| query.contains(*id));
     if focused.entities.len() == 1 && all_are_waypoints {
-        paths.paths[path_index].spawner = Some(focused.entities[0]);
-        info!("Setting {} as EnemySpawnPoint of path", focused.entities[0]);
+        if paths.paths[path_index]
+            .spawner
+            .take()
+            .is_none_or(|entity| entity != focused.entities[0])
+        {
+            paths.paths[path_index].spawner = Some(focused.entities[0]);
+        }
     } else if focused.entities.len() == 2 && all_are_waypoints {
         paths.paths[path_index]
             .connections
