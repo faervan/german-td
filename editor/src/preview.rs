@@ -21,7 +21,7 @@ fn spawn_map_items(
 ) {
     for map in query {
         if let Some(definition) = maps.get(&map.definition) {
-            for waypoint in &definition.waypoints {
+            for waypoint in definition.waypoints() {
                 waypoints.write(SpawnWaypoint {
                     position: Some(*waypoint),
                 });

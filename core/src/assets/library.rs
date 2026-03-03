@@ -6,6 +6,14 @@ pub struct AssetLibrary<T: Asset> {
     pub entries: HashMap<String, Handle<T>>,
 }
 
+impl<T: Asset> Clone for AssetLibrary<T> {
+    fn clone(&self) -> Self {
+        Self {
+            entries: self.entries.clone(),
+        }
+    }
+}
+
 pub trait LibraryInitExt {
     fn init_library<T, STATE>(&mut self, on_exit: STATE) -> &mut Self
     where

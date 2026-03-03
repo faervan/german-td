@@ -1,6 +1,5 @@
 use bevy_inspector_egui::bevy_inspector::ui_for_value;
 use egui::Ui;
-use german_td_core::assets::maps::EnemySpawnPoint;
 
 use crate::{focus::EntitySelectChange, prelude::*};
 
@@ -25,6 +24,12 @@ pub(super) fn plugin(app: &mut App) {
         Update,
         add_path_connection.run_if(in_state(State::Editor).and(input_just_pressed(KeyCode::KeyF))),
     );
+
+    // TODO! remove this, only for testing
+    app.add_systems(
+        Update,
+        test_script_asset.run_if(input_just_pressed(KeyCode::KeyM)),
+    );
 }
 
 #[derive(Component, Reflect)]
@@ -45,7 +50,7 @@ pub struct SpawnTowerPlot {
     pub position: Option<Vec3>,
 }
 
-#[derive(Resource, Reflect, Default)]
+#[derive(Resource, Reflect, Debug, Default)]
 #[reflect(Resource, Default)]
 pub struct EnemyPaths {
     /// The currently edited path index, if any
@@ -53,12 +58,38 @@ pub struct EnemyPaths {
     paths: Vec<EnemyPath>,
 }
 
-#[derive(Reflect, Default)]
+#[derive(Reflect, Debug, Default)]
 #[reflect(Default)]
 struct EnemyPath {
     /// Connections between two waypoint entities
     connections: Vec<(Entity, Entity)>,
-    spawner: Option<Entity>,
+    spawner: Option<(Entity, Handle<ScriptAsset>)>,
+}
+
+/// TODO! remove this, only for testing
+fn test_script_asset(
+    paths: Res<EnemyPaths>,
+    map_defs: Res<Assets<MapDefinition>>,
+    enemy_defs: Res<Assets<EnemyDefinition>>,
+    mut scripts: ResMut<Assets<ScriptAsset>>,
+    enemy_lib: EnemyLibrary,
+) {
+    for path in &paths.paths {
+        if let Some((_, script_handle)) = &path.spawner
+            && let Some(function) = script_handle.get_spawner_function(&mut scripts)
+        {
+            let map = map_defs.iter().next().unwrap().1;
+            for wave in 1..map.waves() + 1 {
+                let spawns: Vec<_> = function
+                    .call(1, scripting::Val(enemy_lib.clone()))
+                    .to_vec()
+                    .into_iter()
+                    .map(|val| (val.0.0, &enemy_defs.get(&val.0.1).unwrap().name))
+                    .collect();
+                debug!("wave {wave}: {spawns:?}");
+            }
+        }
+    }
 }
 
 #[derive(Message)]
@@ -161,7 +192,7 @@ fn spawn_paths(
                     let mut last_entity = None;
                     for waypoint_index in &path.waypoints {
                         let Some(new_entity) = waypoints.iter().find_map(|(transform, entity)| {
-                            (transform.translation == definition.waypoints[*waypoint_index])
+                            (transform.translation == definition.waypoints()[*waypoint_index])
                                 .then_some(entity)
                         }) else {
                             continue;
@@ -172,7 +203,7 @@ fn spawn_paths(
                         last_entity = Some(new_entity);
                     }
                     EnemyPath {
-                        spawner: connections.first().map(|(e, _)| *e),
+                        spawner: connections.first().map(|(e, _)| (*e, path.spawner.clone())),
                         connections,
                     }
                 })
@@ -188,8 +219,8 @@ fn draw_paths(
 ) {
     // Unfortunate naming here
     for (path_index, path) in paths.paths.iter().enumerate() {
-        if let Some(entity) = path.spawner
-            && let Ok(transform) = query.get(entity)
+        if let Some((entity, _)) = &path.spawner
+            && let Ok(transform) = query.get(*entity)
         {
             gizmos.cube(
                 transform.with_scale(Vec3::splat(5.)),
@@ -217,6 +248,7 @@ fn draw_paths(
 fn add_path_connection(
     mut paths: ResMut<EnemyPaths>,
     focused: Res<FocusedEntities>,
+    mut scripts: ResMut<Assets<ScriptAsset>>,
     query: Query<(), With<Waypoint>>,
 ) {
     let Some(path_index) = paths.editing else {
@@ -228,9 +260,23 @@ fn add_path_connection(
         if paths.paths[path_index]
             .spawner
             .take()
-            .is_none_or(|entity| entity != focused.entities[0])
+            .is_none_or(|(entity, _)| entity != focused.entities[0])
         {
-            paths.paths[path_index].spawner = Some(focused.entities[0]);
+            let runtime = scripting::enemy_spawner_runtime();
+            let script = match ScriptAsset::new(
+                &runtime,
+                PathBuf::from_iter(["scripts", "spawners", "NewSpawner.roto"])
+                    .display()
+                    .to_string(),
+                String::new(),
+            ) {
+                Ok(script) => script,
+                Err(e) => {
+                    error!("Failed to compile roto test script for spawner: {e}");
+                    return;
+                }
+            };
+            paths.paths[path_index].spawner = Some((focused.entities[0], scripts.add(script)));
         }
     } else if focused.entities.len() == 2 && all_are_waypoints {
         paths.paths[path_index]
@@ -301,10 +347,12 @@ pub fn save(
         warn!("Failed to save map data: no MapDefinition found for handle");
         return;
     };
-    definition.waypoints = waypoints
-        .iter()
-        .map(|transform| transform.translation)
-        .collect();
+    definition.set_waypoints(
+        waypoints
+            .iter()
+            .map(|transform| transform.translation)
+            .collect(),
+    );
     definition.tower_plots = plots
         .iter()
         .map(|transform| transform.translation)
@@ -312,15 +360,16 @@ pub fn save(
     definition.paths = paths
         .paths
         .iter()
-        .map(|path| {
+        .filter_map(|path| {
             let mut path_waypoints = vec![];
             let mut used_waypoint_entities = vec![];
-            let mut next_entity = path.spawner;
+            let (spawner_entity, spawner) = path.spawner.clone()?;
+            let mut next_entity = Some(spawner_entity);
             while let Some(entity) = next_entity {
                 if let Ok(transform) = waypoints.get(entity) {
                     path_waypoints.push(
                         definition
-                            .waypoints
+                            .waypoints()
                             .iter()
                             .position(|pos| *pos == transform.translation)
                             .unwrap(),
@@ -336,10 +385,10 @@ pub fn save(
                     used_waypoint_entities.push(entity);
                 }
             }
-            crate::prelude::assets::maps::EnemyPath {
+            Some(crate::prelude::assets::maps::EnemyPath {
                 waypoints: path_waypoints,
-                spawner: EnemySpawnPoint { spawns: vec![] },
-            }
+                spawner,
+            })
         })
         .collect();
 }

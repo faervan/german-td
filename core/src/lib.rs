@@ -1,3 +1,5 @@
+#![feature(str_as_str)]
+
 pub mod prelude;
 use prelude::*;
 
@@ -6,6 +8,7 @@ mod components;
 mod enemy;
 mod maps;
 mod projectile;
+pub mod scripting;
 mod skein_spawners;
 mod tower;
 pub mod utils;

@@ -31,10 +31,10 @@ fn spawn_maps(
 ) {
     for spawn in events.read() {
         let def = definitions.get(&spawn.definition).unwrap();
-        info!("Spawning map {}", def.name);
+        info!("Spawning map {}", def.name());
 
         commands.spawn((
-            Name::new(format!("Map: {}", def.name)),
+            Name::new(format!("Map: {}", def.name())),
             Transform::default(),
             SceneRoot(def.scene.clone()),
             Map {

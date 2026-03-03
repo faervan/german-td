@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use bevy::ecs::system::RunSystemOnce as _;
 use german_td_core::{asset_plugin, default_plugins};
 
@@ -88,24 +86,34 @@ fn save(world: &mut World) {
     if let Err(e) = world.run_system_once(map::save) {
         error!("Failed to save map: {e}");
     }
-    world.resource_scope(|world, enemy_defs: Mut<Assets<EnemyDefinition>>| {
+
+    let mut manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    manifest_dir.pop();
+    let Some(manifest_dir_str) = manifest_dir.to_str() else {
+        error!("{} cannot be converted to str", manifest_dir.display());
+        return;
+    };
+
+    world.resource_scope(|world, script_defs: Mut<Assets<ScriptAsset>>| {
         let map_strings = world
             .resource_mut::<Assets<MapDefinition>>()
             .iter_mut()
-            .filter_map(|(_, def)| def.serialize(&enemy_defs).ok())
+            .filter_map(|(_, def)| def.serialize(&script_defs).ok())
             .collect::<Vec<_>>();
         for (name, serialized_string) in map_strings {
-            let mut manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-            manifest_dir.pop();
-            let Some(manifest_dir_str) = manifest_dir.to_str() else {
-                error!("{} cannot be converted to str", manifest_dir.display());
-                continue;
-            };
             let path =
                 PathBuf::from_iter([manifest_dir_str, "assets", "maps", &format!("{name}.map")]);
             info!("Saving map {name} to {}", path.display());
             if let Err(e) = std::fs::write(path, serialized_string) {
                 error!("Saving failed: {e}");
+            }
+        }
+        for (_, script) in script_defs.iter() {
+            let path =
+                PathBuf::from_iter([manifest_dir_str, "assets"]).join(PathBuf::from(&script.file));
+            info!("Saving script {}", &script.file);
+            if let Err(e) = std::fs::write(&path, &script.source) {
+                error!("Failed to save script {}: {e}", path.display());
             }
         }
     });

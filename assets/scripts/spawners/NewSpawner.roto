@@ -1,0 +1,8 @@
+fn spawn_wave(wave: u32, library: EnemyLibrary) -> List[SpawnItem] {
+	let spawns = [];
+	match get_enemy_handle("Knight", library) {
+		Some(handle) -> spawns.push(SpawnItem.new(Duration.from_millis(500), handle)),
+		None -> {}
+	}
+	spawns
+}

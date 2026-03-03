@@ -21,6 +21,7 @@ bevy-inspector-egui = { workspace = true, optional = true }
 thiserror.workspace = true
 ron.workspace = true
 serde.workspace = true
+roto.workspace = true
 
 bevy_skein.workspace = true
 
