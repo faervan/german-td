@@ -11,10 +11,10 @@ use crate::{
 
 pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin {
     move |app: &mut App| {
-        app.load_folder("maps");
-
         app.init_asset::<MapDefinition>();
         app.register_asset_loader(RonAssetLoader::<MapAsset>::new());
+        app.load_folder("maps");
+
         app.init_library::<MapDefinition, STATE>(loading_state);
     }
 }
