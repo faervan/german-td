@@ -314,7 +314,39 @@ pub fn path_edit_ui(world: &mut World, ui: &mut Ui) {
                 if ui.button("Delete path").clicked() {
                     delete = Some(index);
                 }
-                ui_for_value(path, ui, world);
+                ui.horizontal(|ui| {
+                    ui.label("connections");
+                    ui_for_value(&mut path.connections, ui, world);
+                });
+                ui.horizontal(|ui| {
+                    ui.label("spawner");
+                    match &mut path.spawner {
+                        Some((entity, handle)) => {
+                            ui.vertical(|ui| {
+                                ui.horizontal(|ui| {
+                                    ui.label("entity");
+                                    ui_for_value(entity, ui, world);
+                                });
+                                let mut scripts = world.resource_mut::<Assets<ScriptAsset>>();
+                                let script = scripts.get_mut(handle).unwrap();
+                                ui.horizontal(|ui| {
+                                    let file_path = &mut script.file;
+                                    ui.label("file_path");
+                                    ui.text_edit_singleline(file_path);
+                                });
+                                ui.label("Script:");
+                                ui.take_available_width();
+                                ui.add(
+                                    egui::TextEdit::multiline(&mut script.source)
+                                        .desired_width(f32::INFINITY),
+                                );
+                            });
+                        }
+                        None => {
+                            ui.label("None");
+                        }
+                    }
+                });
             });
         }
         if editing.is_some() {

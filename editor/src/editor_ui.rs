@@ -167,6 +167,9 @@ impl egui_dock::TabViewer for TabViewer<'_> {
 
                     ui.label("Paths");
                     crate::map::path_edit_ui(self.world, ui);
+
+                    ui.separator();
+                    ui.add_space(50.);
                 });
             }
             EguiWindow::WorldInspector => {
