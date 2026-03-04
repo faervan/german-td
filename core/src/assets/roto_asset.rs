@@ -1,3 +1,5 @@
+use std::fmt::{Debug, Display};
+
 use bevy::asset::{AssetLoader, AsyncReadExt};
 use roto::{FileTree, NoCtx, Package, RotoReport, Runtime};
 
@@ -67,6 +69,28 @@ impl AssetLoader for ScriptAssetLoader {
 enum ScriptLoadError {
     #[error("Reading the asset failed: {0}")]
     AssetReaderFailed(#[from] std::io::Error),
-    #[error("An roto error occurred: {0}")]
-    RotoError(#[from] RotoReport),
+    #[error("An roto error occurred: {0:?}")]
+    RotoError(UncoloredRotoReport),
+}
+
+impl From<RotoReport> for ScriptLoadError {
+    fn from(error: RotoReport) -> Self {
+        Self::RotoError(UncoloredRotoReport(error))
+    }
+}
+
+/// As of `https://github.com/tokio-rs/tracing/commit/4c52ca5266a3920fc5dfeebda2accf15ee7fb278`
+/// [`tracing-subscriber`] does not allow logging ANSI escape sequences and escapes them instead
+struct UncoloredRotoReport(RotoReport);
+
+impl Debug for UncoloredRotoReport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.write(f, false)
+    }
+}
+
+impl Display for UncoloredRotoReport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.write(f, false)
+    }
 }
