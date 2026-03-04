@@ -6,7 +6,7 @@ use crate::{
 pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin {
     move |app: &mut App| {
         app.init_asset::<EnemyDefinition>();
-        app.register_asset_loader(RonAssetLoader::<EnemyAsset>::new());
+        app.register_asset_loader(RonAssetLoader::<EnemyAsset>::default());
         app.load_folder("enemies");
 
         app.init_library::<EnemyDefinition, STATE>(loading_state);

@@ -6,7 +6,7 @@ use crate::{
 pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin {
     move |app: &mut App| {
         app.init_asset::<TowerDefinition>();
-        app.register_asset_loader(RonAssetLoader::<TowerAsset>::new());
+        app.register_asset_loader(RonAssetLoader::<TowerAsset>::default());
         app.load_folder("towers");
 
         app.init_library::<TowerDefinition, STATE>(loading_state);

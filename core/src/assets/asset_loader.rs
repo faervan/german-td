@@ -22,8 +22,8 @@ pub struct RonAssetLoader<T> {
     _phantom: PhantomData<T>,
 }
 
-impl<T> RonAssetLoader<T> {
-    pub fn new() -> Self {
+impl<T> Default for RonAssetLoader<T> {
+    fn default() -> Self {
         Self {
             _phantom: PhantomData,
         }

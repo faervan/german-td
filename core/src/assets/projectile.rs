@@ -6,7 +6,7 @@ use crate::{
 pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin {
     move |app: &mut App| {
         app.init_asset::<ProjectileDefinition>();
-        app.register_asset_loader(RonAssetLoader::<ProjectileAsset>::new());
+        app.register_asset_loader(RonAssetLoader::<ProjectileAsset>::default());
         app.load_folder("projectiles");
 
         app.init_library::<ProjectileDefinition, STATE>(loading_state);
