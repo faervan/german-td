@@ -16,9 +16,25 @@ pub fn enemy_spawner_runtime() -> Runtime<NoCtx> {
             library.entries.get(name.as_str()).map(|h| Val(h.clone()))
         }
 
+        fn range_f32(start: u32, end: u32) -> List<f32> {
+            let range = List::new();
+            for i in start..end {
+                range.push(i as f32);
+            }
+            range
+        }
+
+        fn as_f32(n: u32) -> f32 {
+            n as f32
+        }
+
+        fn error(msg: Arc<str>) {
+            error!("{msg}")
+        }
+
         impl Val<Duration> {
-            fn from_millis(millis: u64) -> Self {
-                Val(Duration::from_millis(millis))
+            fn from_secs(seconds: f32) -> Self {
+                Val(Duration::from_secs_f32(seconds))
             }
         }
 

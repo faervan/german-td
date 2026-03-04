@@ -1,0 +1,38 @@
+record Enemies {
+	knight: EnemyDefinitionHandle,
+}
+
+fn spawn_wave(wave: u32, library: EnemyLibrary) -> List[SpawnItem] {
+	let knight = match get_enemy_handle("Knight", library) {
+		Some(handle) -> handle,
+		None -> {
+			error("No knight definition found");
+			return [];
+		}
+	};
+	let enemies: Enemies = {knight: knight};
+
+	if wave < 5 {
+		easy_wave(wave, enemies)
+	} else {
+		hard_wave(wave, enemies)
+	}
+}
+
+fn easy_wave(wave: u32, enemies: Enemies) -> List[SpawnItem] {
+	let spawns = [];
+	for i in range_f32(1, 4 + wave * 2) {
+		let duration = 3. + 1. / i * 2.;
+		spawns.push(SpawnItem.new(Duration.from_secs(duration), enemies.knight));
+	}
+	spawns
+}
+
+fn hard_wave(wave: u32, enemies: Enemies) -> List[SpawnItem] {
+	let spawns = [];
+	for i in range_f32(1, wave * 4) {
+		let duration = 1. / (i + as_f32(wave) * 0.2);
+		spawns.push(SpawnItem.new(Duration.from_secs(duration), enemies.knight));
+	}
+	spawns
+}

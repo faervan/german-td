@@ -81,7 +81,7 @@ fn test_script_asset(
             let map = map_defs.iter().next().unwrap().1;
             for wave in 1..map.waves() + 1 {
                 let spawns: Vec<_> = function
-                    .call(1, scripting::Val(enemy_lib.clone()))
+                    .call(wave as u32, scripting::Val(enemy_lib.clone()))
                     .to_vec()
                     .into_iter()
                     .map(|val| (val.0.0, &enemy_defs.get(&val.0.1).unwrap().name))

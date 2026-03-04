@@ -16,7 +16,7 @@
                 1,
                 0,
             ],
-            spawner: "scripts/spawners/NewSpawner.roto",
+            spawner: "scripts/spawners/KnightSpawner.roto",
         ),
     ],
     waves: 10,
