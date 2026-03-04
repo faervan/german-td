@@ -20,9 +20,6 @@ fn main() {
         ..Default::default()
     }));
 
-    // Ecosystem plugins
-    app.add_plugins(PhysicsPlugins::default());
-
     // Our plugins
     app.add_plugins((
         default_plugins(AppState::Loading, AppState::Game),
