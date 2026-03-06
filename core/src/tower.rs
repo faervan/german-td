@@ -21,6 +21,7 @@ pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
 pub struct Tower {
     target: Option<Entity>,
     attack_timer: Timer,
+    projectile: Handle<ProjectileDefinition>,
 }
 
 #[derive(Message, Debug)]
@@ -48,6 +49,7 @@ fn spawn_towers(
                 Tower {
                     target: None,
                     attack_timer,
+                    projectile: def.projectile.clone(),
                 },
             ))
             .observe(on_ready_insert_animation_target);
@@ -68,17 +70,15 @@ fn attack_tower_target(
     time: Res<Time>,
     mut projectile_spawner: MessageWriter<SpawnProjectile>,
     mut towers: Query<(&mut Tower, &Transform)>,
-    /* TODO: Remove, get from tower somehow */ projectile_lib: ProjectileLibrary,
 ) {
     for (mut tower, transform) in &mut towers {
         if tower.attack_timer.is_finished()
             && let Some(target) = tower.target
         {
-            /* TODO: Do not hard code this to arrow */
             projectile_spawner.write(SpawnProjectile {
                 position: transform.translation,
                 target,
-                definition: projectile_lib.entries["Arrow"].clone(),
+                definition: tower.projectile.clone(),
             });
         }
 

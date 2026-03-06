@@ -21,6 +21,7 @@ struct TowerAsset {
     pub gltf: String,
     pub icon: String,
     pub damage: f32,
+    pub projectile: String,
     pub attack_duration_ms: u64,
     pub cost: f32,
 }
@@ -33,6 +34,7 @@ pub struct TowerDefinition {
     pub scene: Handle<Scene>,
     pub icon: Handle<Image>,
     pub damage: f32,
+    pub projectile: Handle<ProjectileDefinition>,
     pub attack_duration: Duration,
     pub cost: f32,
 }
@@ -49,6 +51,7 @@ impl RonAsset for TowerAsset {
             scene: Default::default(),
             icon: context.load(self.icon),
             damage: self.damage,
+            projectile: context.load(ProjectileAsset::path(&self.projectile)),
             attack_duration: Duration::from_millis(self.attack_duration_ms),
             cost: self.cost,
         }
