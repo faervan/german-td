@@ -7,18 +7,18 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
     move |app: &mut App| {
         app.init_asset::<ProjectileDefinition>();
         app.register_asset_loader(RonAssetLoader::<ProjectileAsset>::default());
-        app.load_folder("projectiles");
+        app.load_folder(ProjectileAsset::DIRECTORY);
 
         app.init_library::<ProjectileDefinition, STATE>(loading_state);
     }
 }
 
 #[derive(TypePath, Debug, Serialize, Deserialize)]
-struct ProjectileAsset {
-    pub name: String,
-    pub gltf: String,
-    pub icon: String,
-    pub damage: f32,
+pub(super) struct ProjectileAsset {
+    name: String,
+    gltf: String,
+    icon: String,
+    damage: f32,
 }
 
 #[derive(Asset, Reflect, Debug)]
@@ -33,6 +33,7 @@ pub struct ProjectileDefinition {
 
 impl RonAsset for ProjectileAsset {
     type Asset = ProjectileDefinition;
+    const DIRECTORY: &str = "projectiles";
     const EXTENSION: &str = "projectile";
 
     async fn load_dependencies(self, context: &mut bevy::asset::LoadContext<'_>) -> Self::Asset {

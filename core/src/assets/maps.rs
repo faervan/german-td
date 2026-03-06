@@ -13,7 +13,7 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
     move |app: &mut App| {
         app.init_asset::<MapDefinition>();
         app.register_asset_loader(RonAssetLoader::<MapAsset>::default());
-        app.load_folder("maps");
+        app.load_folder(MapAsset::DIRECTORY);
 
         app.init_library::<MapDefinition, STATE>(loading_state);
     }
@@ -104,6 +104,7 @@ pub struct EnemyPath {
 
 impl RonAsset for MapAsset {
     type Asset = MapDefinition;
+    const DIRECTORY: &str = "maps";
     const EXTENSION: &str = "map";
 
     async fn load_dependencies(self, context: &mut bevy::asset::LoadContext<'_>) -> Self::Asset {
