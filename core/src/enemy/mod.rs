@@ -6,6 +6,7 @@ mod controller;
 
 pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
     move |app: &mut App| {
+        app.add_message::<EnemyReachedGoal>();
         app.add_message::<SpawnEnemy>();
 
         app.add_plugins(controller::plugin(game_state));
@@ -28,6 +29,12 @@ pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
 #[reflect(Component)]
 pub struct Enemy {
     pub definition: Handle<EnemyDefinition>,
+}
+
+#[derive(Message, Debug)]
+pub struct EnemyReachedGoal {
+    pub definition: Handle<EnemyDefinition>,
+    pub entity: Entity,
 }
 
 #[derive(Message, Debug)]
@@ -89,6 +96,7 @@ struct EnemyFollowPath {
 }
 
 fn enemy_follow_path(
+    mut goal_reached: MessageWriter<EnemyReachedGoal>,
     time: Res<Time>,
     mut commands: Commands,
     enemy_defs: Res<Assets<EnemyDefinition>>,
@@ -104,6 +112,10 @@ fn enemy_follow_path(
         let Some(waypoint) = follow_path.waypoints.get(follow_path.current) else {
             commands.entity(entity).remove::<EnemyFollowPath>();
             controller.stop_moving();
+            goal_reached.write(EnemyReachedGoal {
+                definition: enemy.definition.clone(),
+                entity,
+            });
             continue;
         };
 

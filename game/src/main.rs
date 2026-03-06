@@ -1,5 +1,6 @@
 mod camera;
 mod dev_tools;
+mod game_over;
 mod prelude;
 
 use german_td_core::{asset_plugin, default_plugins};
@@ -24,6 +25,7 @@ fn main() {
         default_plugins(AppState::Loading, AppState::Game),
         camera::plugin,
         dev_tools::plugin,
+        game_over::plugin,
     ));
 
     // Our states
