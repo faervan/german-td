@@ -33,6 +33,7 @@ pub use crate::assets::towers::TowerDefinition;
 pub use crate::scripting::ScriptAssetExt as _;
 pub use crate::utils::InspectNoneExt as _;
 pub use crate::utils::delayed_despawn::*;
+pub use crate::utils::value_animation::AnimateValueExt as _;
 
 pub use crate::components::*;
 pub use crate::enemy::*;
