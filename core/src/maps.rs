@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
     move |app: &mut App| {
-        app.init_resource::<Wave>();
+        app.insert_resource(Wave(1));
 
         app.add_message::<SpawnMap>();
         app.add_message::<SpawnSpawners>();
@@ -163,15 +163,26 @@ pub struct StartWave;
 fn start_wave(
     mut start_wave: MessageReader<StartWave>,
     maps: Query<&Map>,
+    map_defs: Res<Assets<MapDefinition>>,
     mut spawn_spawners: MessageWriter<SpawnSpawners>,
-    wave: Res<Wave>,
+    mut wave: ResMut<Wave>,
 ) {
     for _ in start_wave.read() {
-        for map in &maps {
+        if let Ok(map) = maps.single()
+            && let Some(map_def) = map_defs.get(&map.definition)
+        {
             spawn_spawners.write(SpawnSpawners {
                 map_definition: map.definition.clone(),
                 wave: wave.0,
             });
+            wave.0 += 1;
+            if wave.0 > map_def.waves() {
+                info!(
+                    "Finished all {} waves, restarting at first wave",
+                    map_def.waves()
+                );
+                wave.0 = 1;
+            }
         }
     }
 }

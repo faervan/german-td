@@ -35,10 +35,6 @@ fn spawn_projectile(
 ) {
     for spawn in events.read() {
         let def = definitions.get(&spawn.definition).unwrap();
-        info!(
-            "Spawning projectile {} at {:?} with target {:?}",
-            def.name, spawn.position, spawn.target
-        );
 
         commands.spawn((
             Name::new(format!("Projectile: {}", def.name)),
