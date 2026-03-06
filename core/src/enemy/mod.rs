@@ -118,7 +118,10 @@ fn enemy_follow_path(
         if waypoint.distance(transform.translation) < 1. {
             follow_path.current += 1;
             if let Some(new_waypoint) = follow_path.waypoints.get(follow_path.current) {
-                transform.look_at(*new_waypoint, Vec3::Y);
+                commands.entity(entity).animate_towards(
+                    transform.looking_at(*new_waypoint, Vec3::Y),
+                    Duration::from_millis(100),
+                );
             }
         }
     }
