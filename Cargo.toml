@@ -42,6 +42,7 @@ thiserror = "2"
 ron = "0.12"
 serde = { version = "1", features = ["derive"] }
 rand = "0.9"
+roto = "0.10"
 # Compile out low-severity logs to improve performance.
 # Remove these features if you want to profile your game with tracy.
 # (see <https://github.com/bevyengine/bevy/blob/main/docs/profiling.md#tracy-profiler>)

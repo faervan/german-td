@@ -67,6 +67,8 @@ fn load_assets(world: &mut World) {
         world.resource_scope(|world, asset_server: Mut<AssetServer>| {
             let mut popped = 0;
             for i in 0..loading_handles.folders.len() {
+                // TODO! Figure out why it is possible for failed folders to still count as loaded
+                // successfully
                 if asset_server.is_loaded_with_dependencies(&loading_handles.folders[i - popped]) {
                     let folder = loading_handles.folders.pop_front().unwrap();
                     popped += 1;

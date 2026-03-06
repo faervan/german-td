@@ -51,10 +51,10 @@ fn spawn_maps(
 ) {
     for spawn in events.read() {
         let def = definitions.get(&spawn.definition).unwrap();
-        info!("Spawning map {}", def.name);
+        info!("Spawning map {}", def.name());
 
         commands.spawn((
-            Name::new(format!("Map: {}", def.name)),
+            Name::new(format!("Map: {}", def.name())),
             Transform::default(),
             SceneRoot(def.scene.clone()),
             Map {
@@ -116,20 +116,32 @@ fn spawn_spawners(
     mut events: MessageReader<SpawnSpawners>,
     mut commands: Commands,
     definitions: Res<Assets<MapDefinition>>,
+    mut scripts: ResMut<Assets<ScriptAsset>>,
+    enemy_lib: EnemyLibrary,
 ) {
     for spawn in events.read() {
         let map_definition = definitions.get(&spawn.map_definition).unwrap();
         info!(
             "Spawning spawners for {} wave {}",
-            map_definition.name, spawn.wave
+            map_definition.name(),
+            spawn.wave
         );
 
         for (i, path) in map_definition.paths.iter().enumerate() {
-            let position = map_definition
-                .waypoints
-                .get(*path.waypoints.first().unwrap())
-                .unwrap();
-            let spawns = path.spawner.spawns.get(spawn.wave).unwrap();
+            let position = map_definition.waypoints().get(path.waypoints[0]).unwrap();
+            let Some(spawn_function) = path.spawner.get_spawner_function(&mut scripts) else {
+                warn!(
+                    "Failed to get spawn function for path {i} of {}",
+                    map_definition.name()
+                );
+                continue;
+            };
+            let spawns: Vec<_> = spawn_function
+                .call(spawn.wave as u32, scripting::Val(enemy_lib.clone()))
+                .to_vec()
+                .into_iter()
+                .map(|val| val.0)
+                .collect();
 
             commands.spawn((
                 Name::new(format!("Spawner {} at {}", i, position)),
