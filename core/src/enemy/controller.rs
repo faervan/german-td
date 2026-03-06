@@ -1,63 +1,14 @@
-use crate::{prelude::*, utils::on_ready_insert_animation_target};
+use crate::prelude::*;
 
 pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
     move |app: &mut App| {
-        app.add_message::<SpawnEnemy>();
-
-        app.add_systems(
-            Update,
-            (
-                spawn_enemies.run_if(on_message::<SpawnEnemy>),
-                manage_controllers,
-            )
-                .run_if(in_state(game_state)),
-        );
-    }
-}
-
-#[derive(Component, Reflect, Debug)]
-#[reflect(Component)]
-pub struct Enemy {
-    pub definition: Handle<EnemyDefinition>,
-}
-
-#[derive(Message, Debug)]
-pub struct SpawnEnemy {
-    pub position: Vec3,
-    pub definition: Handle<EnemyDefinition>,
-}
-
-fn spawn_enemies(
-    mut events: MessageReader<SpawnEnemy>,
-    mut commands: Commands,
-    definitions: Res<Assets<EnemyDefinition>>,
-) {
-    for spawn in events.read() {
-        let def = definitions.get(&spawn.definition).unwrap();
-        info!("Spawning enemy {} at {:?}", def.name, spawn.position);
-
-        commands
-            .spawn((
-                Name::new(format!("Enemy: {}", def.name)),
-                Transform::from_translation(spawn.position),
-                SceneRoot(def.scene.clone()),
-                Enemy {
-                    definition: spawn.definition.clone(),
-                },
-                EnemyController::default(),
-                Health(def.health),
-                // Physics
-                RigidBody::Kinematic,
-                Collider::cylinder(0.3, 1.5),
-                GravityScale(0.),
-            ))
-            .observe(on_ready_insert_animation_target);
+        app.add_systems(Update, manage_controllers.run_if(in_state(game_state)));
     }
 }
 
 #[derive(Component, Reflect, Debug, Default)]
 #[reflect(Component)]
-pub struct EnemyController {
+pub(super) struct EnemyController {
     start_moving: bool,
     stop_moving: bool,
     /// Managed by the controller

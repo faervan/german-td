@@ -70,6 +70,7 @@ fn spawn_enemy(world: &mut World, ui: &mut Ui) {
         world.write_message(SpawnEnemy {
             position,
             definition,
+            waypoints: Arc::new(vec![]),
         });
 
         close_menu(world);

@@ -2,6 +2,7 @@ pub use std::collections::{HashMap, HashSet, VecDeque};
 pub use std::f32::consts::{PI, TAU};
 pub use std::marker::PhantomData;
 pub use std::path::PathBuf;
+pub use std::sync::Arc;
 pub use std::time::Duration;
 
 pub use serde::{Deserialize, Serialize};

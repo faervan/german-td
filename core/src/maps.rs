@@ -70,14 +70,21 @@ fn spawn_maps(
 pub struct Spawner {
     position: Vec3,
     spawns: Vec<(Duration, Handle<EnemyDefinition>)>,
+    /// The path that spawned enemies will follow
+    waypoints: Arc<Vec<Vec3>>,
     elapsed: Duration,
 }
 
 impl Spawner {
-    pub fn new(position: Vec3, spawns: Vec<(Duration, Handle<EnemyDefinition>)>) -> Self {
+    pub fn new(
+        position: Vec3,
+        spawns: Vec<(Duration, Handle<EnemyDefinition>)>,
+        waypoints: Vec<Vec3>,
+    ) -> Self {
         Self {
             position,
             spawns,
+            waypoints: Arc::new(waypoints),
             elapsed: Duration::ZERO,
         }
     }
@@ -96,6 +103,7 @@ fn spawn_from_spawner(
                 spawn_enemy.write(SpawnEnemy {
                     position: spawner.position,
                     definition: spawn.1.clone(),
+                    waypoints: spawner.waypoints.clone(),
                 });
 
                 spawner.elapsed -= spawn.0;
@@ -143,9 +151,15 @@ fn spawn_spawners(
                 .map(|val| val.0)
                 .collect();
 
+            let waypoints = path
+                .waypoints
+                .iter()
+                .map(|waypoint_id| map_definition.waypoints()[*waypoint_id])
+                .collect();
+
             commands.spawn((
                 Name::new(format!("Spawner {} at {}", i, position)),
-                Spawner::new(*position, spawns.clone()),
+                Spawner::new(*position, spawns.clone(), waypoints),
             ));
         }
     }
