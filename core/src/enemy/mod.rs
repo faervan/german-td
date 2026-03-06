@@ -78,22 +78,6 @@ fn enemy_ctrl(input: Res<ButtonInput<KeyCode>>, mut controllers: Query<&mut Enem
             }
         }
     }
-
-    if input.just_pressed(KeyCode::KeyJ) {
-        for mut controller in &mut controllers {
-            if !controller.start_moving() {
-                warn!("Already moving!");
-            }
-        }
-    }
-
-    if input.just_pressed(KeyCode::KeyK) {
-        for mut controller in &mut controllers {
-            if !controller.stop_moving() {
-                warn!("Not moving currently!");
-            }
-        }
-    }
 }
 
 #[derive(Component, Reflect, Debug)]
@@ -119,6 +103,7 @@ fn enemy_follow_path(
     for (entity, enemy, mut controller, mut transform, mut follow_path) in query {
         let Some(waypoint) = follow_path.waypoints.get(follow_path.current) else {
             commands.entity(entity).remove::<EnemyFollowPath>();
+            controller.stop_moving();
             continue;
         };
 
@@ -131,8 +116,10 @@ fn enemy_follow_path(
         controller.start_moving();
 
         if waypoint.distance(transform.translation) < 1. {
-            debug!("Enemy reached waypoint {waypoint:?}");
             follow_path.current += 1;
+            if let Some(new_waypoint) = follow_path.waypoints.get(follow_path.current) {
+                transform.look_at(*new_waypoint, Vec3::Y);
+            }
         }
     }
 }
