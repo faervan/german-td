@@ -71,6 +71,7 @@ fn spawn_enemies(
                 // Physics
                 RigidBody::Kinematic,
                 Collider::cylinder(0.3, 1.5),
+                CollisionLayers::new(GameLayer::Enemy, GameLayer::all_bits()),
                 GravityScale(0.),
             ))
             .observe(on_ready_insert_animation_target);

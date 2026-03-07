@@ -30,6 +30,8 @@ pub use crate::assets::maps::MapDefinition;
 pub use crate::assets::projectile::ProjectileDefinition;
 pub use crate::assets::roto_asset::ScriptAsset;
 pub use crate::assets::towers::TowerDefinition;
+
+pub use crate::physics_layers::GameLayer;
 pub use crate::scripting::ScriptAssetExt as _;
 pub use crate::utils::InspectNoneExt as _;
 pub use crate::utils::delayed_despawn::*;

@@ -23,6 +23,7 @@ struct TowerAsset {
     pub projectile: String,
     pub damage_factor: f32,
     pub attack_duration_ms: u64,
+    pub range: f32,
     pub cost: f32,
 }
 
@@ -37,6 +38,7 @@ pub struct TowerDefinition {
     /// A multiplier to the base damage of the projectiles this tower shoots
     pub damage_factor: f32,
     pub attack_duration: Duration,
+    pub range: f32,
     pub cost: f32,
 }
 
@@ -54,6 +56,7 @@ impl RonAsset for TowerAsset {
             projectile: context.load(ProjectileAsset::path(&self.projectile)),
             damage_factor: self.damage_factor,
             attack_duration: Duration::from_millis(self.attack_duration_ms),
+            range: self.range,
             cost: self.cost,
         }
     }

@@ -7,6 +7,7 @@ pub mod assets;
 mod components;
 mod enemy;
 mod maps;
+mod physics_layers;
 mod projectile;
 pub mod scripting;
 mod skein_spawners;
