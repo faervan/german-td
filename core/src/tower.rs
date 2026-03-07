@@ -22,6 +22,7 @@ pub struct Tower {
     target: Option<Entity>,
     attack_timer: Timer,
     projectile: Handle<ProjectileDefinition>,
+    damage_factor: f32,
 }
 
 #[derive(Message, Debug)]
@@ -50,6 +51,7 @@ fn spawn_towers(
                     target: None,
                     attack_timer,
                     projectile: def.projectile.clone(),
+                    damage_factor: def.damage_factor,
                 },
             ))
             .observe(on_ready_insert_animation_target);
@@ -79,6 +81,7 @@ fn attack_tower_target(
                 position: transform.translation,
                 target,
                 definition: tower.projectile.clone(),
+                damage_factor: tower.damage_factor,
             });
         }
 
