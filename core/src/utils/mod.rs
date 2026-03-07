@@ -8,3 +8,8 @@ pub(crate) mod delayed_despawn;
 
 mod camera;
 pub use camera::*;
+
+pub mod value_animation;
+
+mod linear_interpolation;
+pub use linear_interpolation::*;

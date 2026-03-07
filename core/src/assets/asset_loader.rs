@@ -9,7 +9,15 @@ pub trait AssetNameExt {
 
 pub trait RonAsset: TypePath + DeserializeOwned + Send + Sync + 'static {
     type Asset: Asset;
+    const DIRECTORY: &str;
     const EXTENSION: &str;
+
+    fn path(name: &str) -> PathBuf {
+        PathBuf::from_iter([
+            PathBuf::from(Self::DIRECTORY),
+            PathBuf::from(format!("{name}.{}", Self::EXTENSION)),
+        ])
+    }
 
     fn load_dependencies(
         self,

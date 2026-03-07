@@ -1,6 +1,6 @@
 mod camera;
 mod dev_tools;
-mod enemy;
+mod game_over;
 mod prelude;
 
 use german_td_core::{asset_plugin, default_plugins};
@@ -24,8 +24,8 @@ fn main() {
     app.add_plugins((
         default_plugins(AppState::Loading, AppState::Game),
         camera::plugin,
-        enemy::plugin,
         dev_tools::plugin,
+        game_over::plugin,
     ));
 
     // Our states
@@ -43,7 +43,6 @@ fn main() {
     app.add_systems(OnEnter(AppState::Game), log_loaded_maps);
     app.add_systems(OnEnter(AppState::Game), log_loaded_towers);
     app.add_systems(OnEnter(AppState::Game), log_loaded_projectiles);
-    app.add_systems(Update, enemy_ctrl.run_if(in_state(AppState::Game)));
 
     app.run();
 }
@@ -127,6 +126,7 @@ fn demo(
     enemy_spawner.write(SpawnEnemy {
         position: Vec3::new(0., 0.5, 0.),
         definition: enemy_lib.entries["Knight"].clone(),
+        waypoints: Arc::new(vec![Vec3::Z * 3., Vec3::NEG_Z * 3.]),
     });
 
     // "Tower"
@@ -134,30 +134,4 @@ fn demo(
         position: Vec3::new(0., 0., -15.),
         definition: tower_lib.entries["Bow Turret"].clone(),
     });
-}
-
-fn enemy_ctrl(input: Res<ButtonInput<KeyCode>>, mut controllers: Query<&mut EnemyController>) {
-    if input.just_pressed(KeyCode::KeyH) {
-        for mut controller in &mut controllers {
-            if !controller.attack() {
-                warn!("Already attacking!");
-            }
-        }
-    }
-
-    if input.just_pressed(KeyCode::KeyJ) {
-        for mut controller in &mut controllers {
-            if !controller.start_moving() {
-                warn!("Already moving!");
-            }
-        }
-    }
-
-    if input.just_pressed(KeyCode::KeyK) {
-        for mut controller in &mut controllers {
-            if !controller.stop_moving() {
-                warn!("Not moving currently!");
-            }
-        }
-    }
 }

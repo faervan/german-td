@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 pub use roto::Val;
 use roto::{List, NoCtx, Runtime, TypedFunc, library};
 

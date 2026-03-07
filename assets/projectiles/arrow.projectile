@@ -1,6 +1,0 @@
-(
-name: "Arrow",
-gltf: "models/projectiles/Arrow.glb",
-icon: "icons/projectiles/Arrow.png",
-damage: 5.,
-)

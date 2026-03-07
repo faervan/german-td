@@ -19,6 +19,7 @@ pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
 #[reflect(Component)]
 pub struct Projectile {
     target: Entity,
+    damage: f32,
 }
 
 #[derive(Message, Debug)]
@@ -26,6 +27,8 @@ pub struct SpawnProjectile {
     pub position: Vec3,
     pub target: Entity,
     pub definition: Handle<ProjectileDefinition>,
+    /// A multiplier to the projectiles base damage depending on the tower that shot it
+    pub damage_factor: f32,
 }
 
 fn spawn_projectile(
@@ -35,10 +38,6 @@ fn spawn_projectile(
 ) {
     for spawn in events.read() {
         let def = definitions.get(&spawn.definition).unwrap();
-        info!(
-            "Spawning projectile {} at {:?} with target {:?}",
-            def.name, spawn.position, spawn.target
-        );
 
         commands.spawn((
             Name::new(format!("Projectile: {}", def.name)),
@@ -46,6 +45,7 @@ fn spawn_projectile(
             SceneRoot(def.scene.clone()),
             Projectile {
                 target: spawn.target,
+                damage: def.damage * spawn.damage_factor,
             },
             // Physics
             RigidBody::Kinematic,
@@ -59,15 +59,17 @@ fn spawn_projectile(
 // TODO: split out despawn to get rid of commands
 fn move_projectile(
     mut commands: Commands,
-    mut projectile_transforms: Query<(Entity, &mut Transform, &mut LinearVelocity, &Projectile)>,
-    other_transforms: Query<&Transform, Without<Projectile>>,
+    projectile_transforms: Query<(Entity, &mut Transform, &mut LinearVelocity, &Projectile)>,
+    mut targets: Query<(Entity, &Transform, &mut Health), Without<Projectile>>,
 ) {
     for (entity, mut projectile_transform, mut projectile_velocity, projectile) in
-        &mut projectile_transforms
+        projectile_transforms
     {
         let mut despawn = false;
 
-        if let Ok(target_transform) = other_transforms.get(projectile.target) {
+        if let Ok((target_entity, target_transform, mut target_health)) =
+            targets.get_mut(projectile.target)
+        {
             let direction = target_transform.translation - projectile_transform.translation;
 
             projectile_transform.look_at(target_transform.translation, Vec3::Y);
@@ -75,6 +77,11 @@ fn move_projectile(
 
             if direction.length() < 1.0 {
                 despawn = true;
+                target_health.0 -= projectile.damage;
+                if target_health.0.is_sign_negative() {
+                    commands.entity(target_entity).despawn();
+                    debug!("entity {target_entity} got killed by projectile {entity}");
+                }
             }
         } else {
             despawn = true;

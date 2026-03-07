@@ -1,8 +1,0 @@
-(
-name: "Bow Turret",
-gltf: "models/towers/Bow.glb",
-icon: "icons/towers/Bow.png",
-damage: 5.,
-attack_duration_ms: 1000,
-cost: 10.,
-)

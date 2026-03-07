@@ -7,7 +7,7 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
     move |app: &mut App| {
         app.init_asset::<EnemyDefinition>();
         app.register_asset_loader(RonAssetLoader::<EnemyAsset>::default());
-        app.load_folder("enemies");
+        app.load_folder(EnemyAsset::DIRECTORY);
 
         app.init_library::<EnemyDefinition, STATE>(loading_state);
     }
@@ -50,6 +50,7 @@ pub struct EnemyDefinition {
 
 impl RonAsset for EnemyAsset {
     type Asset = EnemyDefinition;
+    const DIRECTORY: &str = "enemies";
     const EXTENSION: &str = "enemy";
 
     async fn load_dependencies(self, context: &mut bevy::asset::LoadContext<'_>) -> Self::Asset {

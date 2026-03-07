@@ -2,6 +2,7 @@ pub use std::collections::{HashMap, HashSet, VecDeque};
 pub use std::f32::consts::{PI, TAU};
 pub use std::marker::PhantomData;
 pub use std::path::PathBuf;
+pub use std::sync::Arc;
 pub use std::time::Duration;
 
 pub use serde::{Deserialize, Serialize};
@@ -29,9 +30,12 @@ pub use crate::assets::maps::MapDefinition;
 pub use crate::assets::projectile::ProjectileDefinition;
 pub use crate::assets::roto_asset::ScriptAsset;
 pub use crate::assets::towers::TowerDefinition;
+
+pub use crate::physics_layers::GameLayer;
 pub use crate::scripting::ScriptAssetExt as _;
 pub use crate::utils::InspectNoneExt as _;
 pub use crate::utils::delayed_despawn::*;
+pub use crate::utils::value_animation::AnimateValueExt as _;
 
 pub use crate::components::*;
 pub use crate::enemy::*;
