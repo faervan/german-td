@@ -46,7 +46,7 @@ pub struct SpawnMap {
 
 fn spawn_maps(
     mut events: MessageReader<SpawnMap>,
-    mut placement_spawner: MessageWriter<SpawnTowerPlacement>,
+    #[cfg(not(feature = "editor"))] mut placement_spawner: MessageWriter<SpawnTowerPlacement>,
     mut commands: Commands,
     definitions: Res<Assets<MapDefinition>>,
 ) {
@@ -63,6 +63,7 @@ fn spawn_maps(
             },
         ));
 
+        #[cfg(not(feature = "editor"))]
         for position in def.tower_plots.clone() {
             placement_spawner.write(SpawnTowerPlacement { position });
         }

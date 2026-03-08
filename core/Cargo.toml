@@ -9,6 +9,7 @@ authors.workspace = true
 default = ["dev_native"]
 dev = ["avian3d/diagnostic_ui"]
 dev_native = ["dev", "dep:egui", "dep:bevy_egui", "dep:bevy-inspector-egui"]
+editor = []
 
 [dependencies]
 bevy.workspace = true

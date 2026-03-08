@@ -27,7 +27,7 @@ dev_native = [
 ]
 
 [dependencies]
-german_td_core.workspace = true
+german_td_core = { workspace = true, features = ["editor"] }
 
 bevy.workspace = true
 
