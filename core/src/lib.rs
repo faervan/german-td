@@ -20,6 +20,11 @@ pub fn default_plugins<STATE: States + Copy>(
 ) -> impl Plugin {
     move |app: &mut App| {
         app.add_plugins(PhysicsPlugins::default());
+        app.add_plugins(PhysicsPickingPlugin);
+        app.insert_resource(PhysicsPickingSettings {
+            require_markers: true,
+        });
+
         app.add_plugins(bevy_skein::SkeinPlugin::default());
 
         app.add_plugins((

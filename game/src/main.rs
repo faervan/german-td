@@ -109,29 +109,9 @@ fn log_loaded_projectiles(
     );
 }
 
-fn demo(
-    enemy_lib: EnemyLibrary,
-    map_lib: MapLibrary,
-    tower_lib: TowerLibrary,
-    mut enemy_spawner: MessageWriter<SpawnEnemy>,
-    mut map_spawner: MessageWriter<SpawnMap>,
-    mut tower_spawner: MessageWriter<SpawnTower>,
-) {
+fn demo(map_lib: MapLibrary, mut map_spawner: MessageWriter<SpawnMap>) {
     // Map
     map_spawner.write(SpawnMap {
         definition: map_lib.entries["First"].clone(),
-    });
-
-    // Enemy
-    enemy_spawner.write(SpawnEnemy {
-        position: Vec3::new(0., 0.5, 0.),
-        definition: enemy_lib.entries["Knight"].clone(),
-        waypoints: Arc::new(vec![Vec3::Z * 3., Vec3::NEG_Z * 3.]),
-    });
-
-    // "Tower"
-    tower_spawner.write(SpawnTower {
-        position: Vec3::new(0., 0., -15.),
-        definition: tower_lib.entries["Bow Turret"].clone(),
     });
 }

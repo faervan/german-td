@@ -46,6 +46,7 @@ pub struct SpawnMap {
 
 fn spawn_maps(
     mut events: MessageReader<SpawnMap>,
+    mut placement_spawner: MessageWriter<SpawnTowerPlacement>,
     mut commands: Commands,
     definitions: Res<Assets<MapDefinition>>,
 ) {
@@ -61,6 +62,10 @@ fn spawn_maps(
                 definition: spawn.definition.clone(),
             },
         ));
+
+        for position in def.tower_plots.clone() {
+            placement_spawner.write(SpawnTowerPlacement { position });
+        }
     }
 }
 
@@ -92,10 +97,11 @@ impl Spawner {
 
 fn spawn_from_spawner(
     time: Res<Time>,
-    mut spawners: Query<&mut Spawner>,
+    mut commands: Commands,
+    mut spawners: Query<(Entity, &mut Spawner)>,
     mut spawn_enemy: MessageWriter<SpawnEnemy>,
 ) {
-    for mut spawner in &mut spawners {
+    for (spawner_entity, mut spawner) in &mut spawners {
         if let Some(spawn) = spawner.spawns.last().cloned() {
             spawner.elapsed += time.delta();
 
@@ -110,6 +116,8 @@ fn spawn_from_spawner(
 
                 spawner.spawns.pop();
             }
+        } else {
+            commands.entity(spawner_entity).despawn();
         }
     }
 }
