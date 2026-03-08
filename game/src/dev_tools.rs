@@ -83,6 +83,6 @@ fn toggle_physics_gizmos(mut gizmo: ResMut<GizmoConfigStore>) {
 
 const SPAWN_WAVE_KEY: KeyCode = KeyCode::KeyK;
 
-fn spawn_wave(mut start_wave: MessageWriter<StartWave>) {
-    start_wave.write(StartWave);
+fn spawn_wave(mut wave: ResMut<WaveSpawning>) {
+    wave.cooldown = None;
 }

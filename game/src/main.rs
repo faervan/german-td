@@ -2,6 +2,7 @@ mod camera;
 mod dev_tools;
 mod game_over;
 mod prelude;
+mod waves;
 
 use german_td_core::{asset_plugin, default_plugins};
 
@@ -26,6 +27,7 @@ fn main() {
         camera::plugin,
         dev_tools::plugin,
         game_over::plugin,
+        waves::plugin,
     ));
 
     // Our states
