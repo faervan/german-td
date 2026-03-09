@@ -72,7 +72,7 @@ impl AnimateValueExt for EntityCommands<'_> {
         end: T,
         duration: Duration,
     ) -> &mut Self {
-        self.insert(InsertLinearAnimateValue { duration, end })
+        self.try_insert(InsertLinearAnimateValue { duration, end })
     }
     fn animate_value_with<
         T: Component<Mutability = Mutable> + Default,
@@ -108,7 +108,9 @@ impl<T: Component<Mutability = Mutable> + LinearlyInterpolatable + Clone>
     InsertLinearAnimateValue<T>
 {
     fn on_add(mut world: DeferredWorld, hook: HookContext) {
-        let this = world.get::<Self>(hook.entity).unwrap();
+        let Some(this) = world.get::<Self>(hook.entity) else {
+            return;
+        };
         let Some(t) = world.get::<T>(hook.entity) else {
             warn!(
                 "Tried to add AnimateValue for a value T that is not available on entity {}",
@@ -125,10 +127,10 @@ impl<T: Component<Mutability = Mutable> + LinearlyInterpolatable + Clone>
                 value.interpolate(progress, init, end);
             }),
         };
-        world
-            .commands()
-            .entity(hook.entity)
-            .remove::<Self>()
-            .insert(animation);
+        let mut cmds = world.commands();
+        let Ok(mut entity_cmds) = cmds.get_entity(hook.entity) else {
+            return;
+        };
+        entity_cmds.remove::<Self>().insert(animation);
     }
 }
