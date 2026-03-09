@@ -20,6 +20,10 @@ fn main() {
         }),
         ..Default::default()
     }));
+    // Avoid needing to add [`Picking::IGNORE`] to 90% of UI nodes
+    app.insert_resource(UiPickingSettings {
+        require_markers: true,
+    });
 
     // Our plugins
     app.add_plugins((

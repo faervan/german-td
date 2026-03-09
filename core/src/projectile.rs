@@ -80,7 +80,6 @@ fn move_projectile(
                 target_health.0 -= projectile.damage;
                 if target_health.0.is_sign_negative() {
                     commands.entity(target_entity).despawn();
-                    debug!("entity {target_entity} got killed by projectile {entity}");
                 }
             }
         } else {

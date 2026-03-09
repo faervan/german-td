@@ -52,7 +52,6 @@ fn spawn_enemies(
 ) {
     for spawn in events.read() {
         let def = definitions.get(&spawn.definition).unwrap();
-        info!("Spawning enemy {} at {:?}", def.name, spawn.position);
 
         commands
             .spawn((
