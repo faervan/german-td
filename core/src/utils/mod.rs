@@ -1,6 +1,8 @@
 mod animation_target;
 pub use animation_target::*;
 
+pub mod audio;
+
 mod inspect_none;
 pub use inspect_none::InspectNoneExt;
 

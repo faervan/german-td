@@ -61,6 +61,8 @@ fn move_projectile(
     mut commands: Commands,
     projectile_transforms: Query<(Entity, &mut Transform, &mut LinearVelocity, &Projectile)>,
     mut targets: Query<(Entity, &Transform, &mut Health), Without<Projectile>>,
+    time: Res<Time>,
+    audio_handles: Res<GameSoundHandles>,
 ) {
     for (entity, mut projectile_transform, mut projectile_velocity, projectile) in
         projectile_transforms
@@ -80,6 +82,7 @@ fn move_projectile(
                 target_health.0 -= projectile.damage;
                 if target_health.0.is_sign_negative() {
                     commands.entity(target_entity).despawn();
+                    commands.spawn(sound_effect(audio_handles.enemy_death_from_time(&time)));
                 }
             }
         } else {

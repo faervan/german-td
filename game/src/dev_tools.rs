@@ -84,5 +84,7 @@ fn toggle_physics_gizmos(mut gizmo: ResMut<GizmoConfigStore>) {
 const SPAWN_WAVE_KEY: KeyCode = KeyCode::KeyK;
 
 fn spawn_wave(mut wave: ResMut<WaveSpawning>) {
-    wave.cooldown = None;
+    if let Some(timer) = wave.cooldown.as_mut() {
+        timer.finish();
+    }
 }
