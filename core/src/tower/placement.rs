@@ -15,6 +15,7 @@ pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
             Update,
             spawn_placements.run_if(on_message::<SpawnTowerPlacement>.and(in_state(game_state))),
         );
+        app.add_systems(Update, blend_hover.run_if(in_state(game_state)));
     }
 }
 
@@ -53,7 +54,7 @@ fn spawn_placements(
             mut materials: ResMut<Assets<ForwardDecalMaterial<TowerPlotMaterial>>>| {
                 if let Ok(handle) = query.get(event.entity)
                     && let Some(material) = materials.get_mut(&handle.0) {
-                        material.base.hover = 1.;
+                        material.base.hovered = true;
                 }
         }).observe(|
             event: On<Pointer<Out>>,
@@ -61,7 +62,7 @@ fn spawn_placements(
             mut materials: ResMut<Assets<ForwardDecalMaterial<TowerPlotMaterial>>>| {
                 if let Ok(handle) = query.get(event.entity)
                     && let Some(material) = materials.get_mut(&handle.0) {
-                        material.base.hover = 0.;
+                        material.base.hovered = false;
                 }
         }).observe(|
             event: On<Pointer<Click>>,
@@ -80,11 +81,31 @@ fn spawn_placements(
     }
 }
 
+const BLEND_SPEED: f32 = 15.;
+fn blend_hover(
+    time: Res<Time>,
+    mut materials: ResMut<Assets<ForwardDecalMaterial<TowerPlotMaterial>>>,
+) {
+    for (_, material) in materials.iter_mut() {
+        if material.base.hovered && material.base.blend_hover != 1.
+            || !material.base.hovered && material.base.blend_hover != 0.
+        {
+            let sign = match material.base.hovered {
+                true => 1.,
+                false => -1.,
+            };
+            material.base.blend_hover += sign * time.delta_secs() * BLEND_SPEED;
+            material.base.blend_hover = material.base.blend_hover.clamp(0., 1.);
+        }
+    }
+}
+
 #[derive(Asset, TypePath, AsBindGroup, Clone, Default)]
 struct TowerPlotMaterial {
+    hovered: bool,
     #[uniform(0)]
-    /// 0 means not hovered, 1 means hovered
-    hover: f32,
+    /// Always between 0 and 1, 0 is not hovered, 1 means it is hovered
+    blend_hover: f32,
 }
 
 impl Material for TowerPlotMaterial {

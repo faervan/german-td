@@ -1,7 +1,7 @@
 #import bevy_pbr::forward_io::VertexOutput
 
 @group(#{MATERIAL_BIND_GROUP}) @binding(0)
-var<uniform> hovered: f32;
+var<uniform> hover: f32;
 
 @fragment
 fn fragment(
@@ -11,17 +11,21 @@ fn fragment(
 	let y = mesh.uv.y - 0.5;
 	let distance_from_origin = sqrt(x * x + y * y);
 
-	var base_color: vec3<f32>;
-	if hovered == 1. {
-		base_color = vec3f(0.2, 0.2, 0.);
-	} else {
-		base_color = vec3f(0.1, 0.05, 0.);
+	let hovered_color = vec3f(0.2, 0.2, 0.);
+	let unhovered_color = vec3f(0.1, 0.05, 0.);
+
+	if hover == 1. {
+		return draw(distance_from_origin, hovered_color);
+	} else if hover == 0. {
+		return draw(distance_from_origin, unhovered_color);
 	}
 
-	return outer_ring(distance_from_origin, base_color);
+	let hovered = draw(distance_from_origin, hovered_color);
+	let unhovered = draw(distance_from_origin, unhovered_color);
+	return hovered * hover + unhovered * (1. - hover);
 }
 
-fn outer_ring(distance_from_origin: f32, base_color: vec3<f32>) -> vec4<f32> {
+fn draw(distance_from_origin: f32, base_color: vec3<f32>) -> vec4<f32> {
 	// Distance of the ring from the origin
 	let ring = 0.3;
 
