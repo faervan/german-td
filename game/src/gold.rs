@@ -11,7 +11,12 @@ pub(super) fn plugin(app: &mut App) {
 
     app.add_systems(
         Update,
-        update_not_enough_gold_ui.run_if(on_message::<NotEnoughGold>.and(in_state(AppState::Game))),
+        update_not_enough_gold_text_ui
+            .run_if(on_message::<NotEnoughGold>.and(in_state(AppState::Game))),
+    );
+    app.add_systems(
+        Update,
+        update_not_enough_gold_text_ui_tick.run_if(in_state(AppState::Game)),
     );
 }
 
@@ -21,7 +26,7 @@ pub struct GoldText;
 
 #[derive(Debug, Default, Component, Reflect)]
 #[reflect(Component)]
-pub struct NotEnoughGoldText;
+pub struct NotEnoughGoldText(Timer);
 
 fn setup_gold_ui(mut commands: Commands) {
     commands
@@ -46,7 +51,7 @@ fn setup_gold_ui(mut commands: Commands) {
                 Name::new("NotEnoughGoldText"),
                 Text::new(""),
                 TextColor(RED.into()),
-                NotEnoughGoldText,
+                NotEnoughGoldText(Timer::default()),
             ));
         });
 }
@@ -55,11 +60,27 @@ fn update_gold_ui(gold: Res<Gold>, mut gold_text: Single<&mut Text, With<GoldTex
     gold_text.0 = format!("Gold: {}", gold.0);
 }
 
-fn update_not_enough_gold_ui(
+fn update_not_enough_gold_text_ui(
     mut not_enough_gold: MessageReader<NotEnoughGold>,
-    mut not_enough_gold_text: Single<&mut Text, With<NotEnoughGoldText>>,
+    mut not_enough_gold_text: Single<(&mut Text, &mut NotEnoughGoldText)>,
 ) {
     for _not_enough_gold in not_enough_gold.read() {
-        not_enough_gold_text.0 = format!("NOT ENOUGH GOLD");
+        let (ref mut text, ref mut not_enough_gold_text) = *not_enough_gold_text;
+        text.0 = String::from("NOT ENOUGH GOLD");
+
+        not_enough_gold_text.0 = Timer::new(Duration::from_secs_f32(1.5), TimerMode::Once);
     }
+}
+
+fn update_not_enough_gold_text_ui_tick(
+    time: Res<Time>,
+    mut not_enough_gold_text: Single<(&mut NotEnoughGoldText, &mut TextColor)>,
+) {
+    let (ref mut not_enough_gold_text, ref mut color) = *not_enough_gold_text;
+
+    not_enough_gold_text.0.tick(time.delta());
+
+    color
+        .0
+        .set_alpha(not_enough_gold_text.0.fraction_remaining());
 }
