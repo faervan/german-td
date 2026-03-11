@@ -5,4 +5,4 @@ edit:
 	RUST_LOG=info,german_td=debug,wgpu_hal=off,cranelift_jit=warn cargo run -p german_td_editor
 
 ci-check:
-	cargo fmt --check -v && cargo clippy -v
+	cargo +nightly fmt -- --config error_on_line_overflow=true --check && cargo clippy -v
