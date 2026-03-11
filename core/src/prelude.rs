@@ -41,6 +41,7 @@ pub use crate::utils::value_animation::AnimateValueExt as _;
 
 pub use crate::components::*;
 pub use crate::enemy::*;
+pub use crate::events::*;
 pub use crate::maps::*;
 pub use crate::projectile::*;
 pub use crate::resources::*;

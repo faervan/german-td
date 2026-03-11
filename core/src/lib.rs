@@ -6,6 +6,7 @@ use prelude::*;
 pub mod assets;
 mod components;
 mod enemy;
+mod events;
 mod maps;
 mod physics_layers;
 mod projectile;
@@ -37,6 +38,7 @@ pub fn default_plugins<STATE: States + Copy>(
             maps::plugin(game_state),
             tower::plugin(game_state),
             projectile::plugin(game_state),
+            events::plugin,
         ));
     }
 }

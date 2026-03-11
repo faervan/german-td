@@ -44,6 +44,7 @@ fn spawn_towers(
     mut events: MessageReader<SpawnTower>,
     mut commands: Commands,
     definitions: Res<Assets<TowerDefinition>>,
+    mut not_enough_gold: MessageWriter<NotEnoughGold>,
 ) {
     for spawn in events.read() {
         let def = definitions.get(&spawn.definition).unwrap();
@@ -54,6 +55,7 @@ fn spawn_towers(
             let cost = def.cost as usize;
             if gold.0 < cost {
                 info!("Not enough gold ({})!", cost);
+                not_enough_gold.write(NotEnoughGold);
                 return;
             }
 
