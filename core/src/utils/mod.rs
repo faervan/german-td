@@ -15,3 +15,5 @@ pub mod value_animation;
 
 mod linear_interpolation;
 pub use linear_interpolation::*;
+
+pub mod billboard;

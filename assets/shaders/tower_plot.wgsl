@@ -1,4 +1,5 @@
 #import bevy_pbr::forward_io::VertexOutput
+#import bevy_pbr::decal::forward::get_forward_decal_info
 
 @group(#{MATERIAL_BIND_GROUP}) @binding(0)
 var<uniform> hover: f32;
@@ -7,22 +8,25 @@ var<uniform> hover: f32;
 fn fragment(
     mesh: VertexOutput,
 ) -> @location(0) vec4<f32> {
-	let x = mesh.uv.x - 0.5;
-	let y = mesh.uv.y - 0.5;
+	let decal_info = get_forward_decal_info(mesh);
+	let decal_alpha = vec4f(1., 1., 1., decal_info.alpha);
+
+	let x = decal_info.uv.x - 0.5;
+	let y = decal_info.uv.y - 0.5;
 	let distance_from_origin = sqrt(x * x + y * y);
 
 	let hovered_color = vec3f(0.2, 0.2, 0.);
 	let unhovered_color = vec3f(0.1, 0.05, 0.);
 
 	if hover == 1. {
-		return draw(distance_from_origin, hovered_color);
+		return draw(distance_from_origin, hovered_color) * decal_alpha;
 	} else if hover == 0. {
-		return draw(distance_from_origin, unhovered_color);
+		return draw(distance_from_origin, unhovered_color) * decal_alpha;
 	}
 
 	let hovered = draw(distance_from_origin, hovered_color);
 	let unhovered = draw(distance_from_origin, unhovered_color);
-	return hovered * hover + unhovered * (1. - hover);
+	return (hovered * hover + unhovered * (1. - hover)) * decal_alpha;
 }
 
 fn draw(distance_from_origin: f32, base_color: vec3<f32>) -> vec4<f32> {

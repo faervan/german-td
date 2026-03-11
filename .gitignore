@@ -5,3 +5,4 @@ rust-toolchain.toml
 
 *.blend1
 *.kra~
+*.png~

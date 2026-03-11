@@ -14,7 +14,6 @@ pub(super) fn plugin(app: &mut App) {
 
     app.init_resource::<FocusedEntities>();
 
-    app.add_plugins(MeshPickingPlugin);
     app.add_plugins(MaterialPlugin::<
         ExtendedMaterial<StandardMaterial, FocusMaterial>,
     >::default());
