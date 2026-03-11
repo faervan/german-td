@@ -36,6 +36,7 @@ pub struct Tower {
 pub struct SpawnTower {
     pub position: Vec3,
     pub definition: Handle<TowerDefinition>,
+    pub plot: Entity,
 }
 
 fn spawn_towers(
@@ -78,6 +79,8 @@ fn spawn_towers(
                 CollisionEventsEnabled,
             ))
             .observe(on_ready_insert_animation_target);
+
+        commands.entity(spawn.plot).despawn();
     }
 }
 

@@ -67,14 +67,13 @@ fn spawn_placements(
         }).observe(|
             event: On<Pointer<Click>>,
             query: Query<&Transform>,
-            mut commands: Commands,
             mut tower_spawner: MessageWriter<SpawnTower>,
             tower_lib: TowerLibrary| {
-                commands.entity(event.entity).despawn();
                 if let Ok(transform) = query.get(event.entity) {
                     tower_spawner.write(SpawnTower {
                         position: transform.translation,
-                        definition: tower_lib.entries["Bow Turret"].clone()
+                        definition: tower_lib.entries["Bow Turret"].clone(),
+                        plot: event.entity,
                     });
                 }
         });
