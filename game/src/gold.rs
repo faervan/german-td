@@ -3,16 +3,12 @@ use bevy::color::palettes::css::GOLD;
 use crate::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
-    app.insert_resource(Gold(500));
+    app.insert_resource(Gold(40));
 
     app.add_systems(OnEnter(AppState::Game), setup_gold_ui);
 
     app.add_systems(Update, update_gold_ui.run_if(in_state(AppState::Game)));
 }
-
-#[derive(Debug, Default, Resource, Reflect)]
-#[reflect(Resource)]
-pub struct Gold(usize);
 
 #[derive(Debug, Default, Component, Reflect)]
 #[reflect(Component)]

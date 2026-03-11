@@ -9,6 +9,7 @@ mod enemy;
 mod maps;
 mod physics_layers;
 mod projectile;
+mod resources;
 pub mod scripting;
 mod skein_spawners;
 mod tower;

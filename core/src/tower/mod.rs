@@ -39,6 +39,7 @@ pub struct SpawnTower {
 }
 
 fn spawn_towers(
+    mut gold: ResMut<Gold>,
     mut events: MessageReader<SpawnTower>,
     mut commands: Commands,
     definitions: Res<Assets<TowerDefinition>>,
@@ -46,6 +47,15 @@ fn spawn_towers(
     for spawn in events.read() {
         let def = definitions.get(&spawn.definition).unwrap();
         info!("Spawning tower {} at {:?}", def.name, spawn.position);
+
+        // TODO: I am pretty sure we should not cast here; Make cost u32?
+        let cost = def.cost as usize;
+        if gold.0 < cost {
+            info!("Not enough gold ({})!", cost);
+            return;
+        }
+
+        gold.0 -= cost;
 
         let mut attack_timer = Timer::new(def.attack_duration, TimerMode::Repeating);
         attack_timer.finish();

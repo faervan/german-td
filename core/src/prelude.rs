@@ -43,6 +43,7 @@ pub use crate::components::*;
 pub use crate::enemy::*;
 pub use crate::maps::*;
 pub use crate::projectile::*;
+pub use crate::resources::*;
 pub use crate::scripting;
 pub use crate::tower::*;
 
