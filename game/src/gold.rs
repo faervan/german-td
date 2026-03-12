@@ -18,6 +18,10 @@ pub(super) fn plugin(app: &mut App) {
         Update,
         update_not_enough_gold_text_ui_tick.run_if(in_state(AppState::Game)),
     );
+    app.add_systems(
+        Update,
+        gain_gold_from_enemy.run_if(on_message::<EnemyKilled>.and(in_state(AppState::Game))),
+    );
 }
 
 #[derive(Debug, Default, Component, Reflect)]
@@ -83,4 +87,16 @@ fn update_not_enough_gold_text_ui_tick(
     color
         .0
         .set_alpha(not_enough_gold_text.0.fraction_remaining());
+}
+
+fn gain_gold_from_enemy(
+    mut gold: ResMut<Gold>,
+    mut enemy_killed: MessageReader<EnemyKilled>,
+    enemies: Res<Assets<EnemyDefinition>>,
+) {
+    for enemy_killed in enemy_killed.read() {
+        if let Some(definition) = enemies.get(&enemy_killed.0) {
+            gold.0 += definition.drop as usize;
+        }
+    }
 }

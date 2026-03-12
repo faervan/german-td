@@ -60,16 +60,17 @@ fn spawn_projectile(
 fn move_projectile(
     mut commands: Commands,
     projectile_transforms: Query<(Entity, &mut Transform, &mut LinearVelocity, &Projectile)>,
-    mut targets: Query<(Entity, &Transform, &mut Health), Without<Projectile>>,
+    mut targets: Query<(Entity, &Transform, &mut Health, &Enemy), Without<Projectile>>,
     time: Res<Time>,
     audio_handles: Res<GameSoundHandles>,
+    mut enemy_killed: MessageWriter<EnemyKilled>,
 ) {
     for (entity, mut projectile_transform, mut projectile_velocity, projectile) in
         projectile_transforms
     {
         let mut despawn = false;
 
-        if let Ok((target_entity, target_transform, mut target_health)) =
+        if let Ok((target_entity, target_transform, mut target_health, enemy)) =
             targets.get_mut(projectile.target)
         {
             let direction = target_transform.translation - projectile_transform.translation;
@@ -83,6 +84,8 @@ fn move_projectile(
                 if target_health.0.is_sign_negative() {
                     commands.entity(target_entity).despawn();
                     commands.spawn(sound_effect(audio_handles.enemy_death_from_time(&time)));
+
+                    enemy_killed.write(EnemyKilled(enemy.definition.clone()));
                 }
             }
         } else {
