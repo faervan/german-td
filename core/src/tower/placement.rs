@@ -9,6 +9,7 @@ pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
     move |app: &mut App| {
         app.add_plugins(MaterialPlugin::<ForwardDecalMaterial<TowerPlotMaterial>>::default());
         app.add_plugins(MaterialPlugin::<TowerRingMaterial>::default());
+        app.add_plugins(MaterialPlugin::<TowerRingActionMaterial>::default());
 
         app.add_message::<SpawnTowerPlacement>();
 
@@ -51,8 +52,8 @@ fn spawn_placements(
                 RigidBody::Static,
                 Collider::cylinder(0.5, 0.1),
             ))
-            .observe(changed_hover_state::<Pointer<Over>, true>)
-            .observe(changed_hover_state::<Pointer<Out>, false>)
+            .observe(plot_change_hover_state::<Pointer<Over>, true>)
+            .observe(plot_change_hover_state::<Pointer<Out>, false>)
             .observe(
                 |event: On<Pointer<Click>>,
                  query: Query<&Transform>,
@@ -60,8 +61,7 @@ fn spawn_placements(
                  mut meshes: ResMut<Assets<Mesh>>,
                  mut ring_materials: ResMut<Assets<TowerRingMaterial>>,
                  tower_lib: TowerLibrary,
-                 tower_defs: Res<Assets<TowerDefinition>>,
-                 camera: Single<&Transform, With<Camera3d>>| {
+                 tower_defs: Res<Assets<TowerDefinition>>| {
                     if let Ok(transform) = query.get(event.entity) {
                         let ring_id = commands
                             .spawn((
@@ -109,7 +109,7 @@ fn spawn_placements(
     }
 }
 
-fn changed_hover_state<EVENT: EntityEvent, const SET_HOVERED: bool>(
+fn plot_change_hover_state<EVENT: EntityEvent, const SET_HOVERED: bool>(
     event: On<EVENT>,
     query: Query<&MeshMaterial3d<ForwardDecalMaterial<TowerPlotMaterial>>>,
     mut materials: ResMut<Assets<ForwardDecalMaterial<TowerPlotMaterial>>>,
@@ -118,25 +118,6 @@ fn changed_hover_state<EVENT: EntityEvent, const SET_HOVERED: bool>(
         && let Some(material) = materials.get_mut(&handle.0)
     {
         material.base.hovered = SET_HOVERED;
-    }
-}
-
-const BLEND_SPEED: f32 = 15.;
-fn blend_hover(
-    time: Res<Time>,
-    mut materials: ResMut<Assets<ForwardDecalMaterial<TowerPlotMaterial>>>,
-) {
-    for (_, material) in materials.iter_mut() {
-        if material.base.hovered && material.base.blend_hover != 1.
-            || !material.base.hovered && material.base.blend_hover != 0.
-        {
-            let sign = match material.base.hovered {
-                true => 1.,
-                false => -1.,
-            };
-            material.base.blend_hover += sign * time.delta_secs() * BLEND_SPEED;
-            material.base.blend_hover = material.base.blend_hover.clamp(0., 1.);
-        }
     }
 }
 
@@ -164,28 +145,33 @@ struct TowerPlacementRing {
 impl TowerPlacementRing {
     fn on_add(mut world: DeferredWorld, hook: HookContext) {
         let mut meshes = world.resource_mut::<Assets<Mesh>>();
-        let mesh = meshes.add(Plane3d::new(Vec3::Z, Vec2::splat(2.)));
+        let mesh = meshes.add(Plane3d::new(Vec3::Z, Vec2::splat(2.5)));
 
         let this = &mut world.get_mut::<Self>(hook.entity).unwrap();
         let action_len = this.actions.len() as f32;
 
         for (index, (entity, image)) in std::mem::take(&mut this.actions).into_iter().enumerate() {
-            let mut materials = world.resource_mut::<Assets<StandardMaterial>>();
-            let material = materials.add(StandardMaterial {
-                base_color_texture: Some(image),
-                alpha_mode: AlphaMode::Blend,
+            let mut materials = world.resource_mut::<Assets<TowerRingActionMaterial>>();
+            let material = materials.add(TowerRingActionMaterial {
+                icon: image,
                 ..Default::default()
             });
 
             let angle = TAU / action_len * index as f32;
             let offset = (Vec3::Y * 6.5 + Vec3::Z * 0.01).rotate_z(angle);
 
-            world.commands().entity(entity).insert((
-                Name::new("Place tower"),
-                Transform::from_translation(offset),
-                Mesh3d(mesh.clone()),
-                MeshMaterial3d(material),
-            ));
+            world
+                .commands()
+                .entity(entity)
+                .insert((
+                    Name::new("Place tower"),
+                    Transform::from_translation(offset),
+                    Mesh3d(mesh.clone()),
+                    MeshMaterial3d(material),
+                    NotShadowCaster,
+                ))
+                .observe(action_icon_change_hover_state::<Pointer<Over>, true>)
+                .observe(action_icon_change_hover_state::<Pointer<Out>, false>);
         }
     }
 }
@@ -199,5 +185,79 @@ impl Material for TowerRingMaterial {
     }
     fn alpha_mode(&self) -> AlphaMode {
         AlphaMode::Blend
+    }
+}
+
+#[derive(Asset, TypePath, AsBindGroup, Clone, Default)]
+struct TowerRingActionMaterial {
+    hovered: bool,
+    #[texture(0)]
+    #[sampler(1)]
+    icon: Handle<Image>,
+    #[uniform(2)]
+    /// Always between 0 and 1, 0 is not hovered, 1 means it is hovered
+    blend_hover: f32,
+}
+
+impl Material for TowerRingActionMaterial {
+    fn fragment_shader() -> bevy::shader::ShaderRef {
+        "shaders/tower_ring_action.wgsl".into()
+    }
+    fn alpha_mode(&self) -> AlphaMode {
+        AlphaMode::Blend
+    }
+}
+
+fn action_icon_change_hover_state<EVENT: EntityEvent, const SET_HOVERED: bool>(
+    event: On<EVENT>,
+    mut commands: Commands,
+    query: Query<(&Transform, &MeshMaterial3d<TowerRingActionMaterial>)>,
+    mut materials: ResMut<Assets<TowerRingActionMaterial>>,
+) {
+    if let Ok((transform, handle)) = query.get(event.event_target())
+        && let Some(material) = materials.get_mut(&handle.0)
+    {
+        material.hovered = SET_HOVERED;
+        let scale = match SET_HOVERED {
+            true => Vec3::splat(1.1),
+            false => Vec3::splat(1.),
+        };
+        commands.entity(event.event_target()).animate_towards(
+            transform.with_scale(scale),
+            Duration::from_secs_f32(1. / ACTION_ICON_BLEND_SPEED),
+        );
+    }
+}
+
+const PLOT_BLEND_SPEED: f32 = 15.;
+const ACTION_ICON_BLEND_SPEED: f32 = 15.;
+fn blend_hover(
+    time: Res<Time>,
+    mut plot_materials: ResMut<Assets<ForwardDecalMaterial<TowerPlotMaterial>>>,
+    mut icon_materials: ResMut<Assets<TowerRingActionMaterial>>,
+) {
+    for (_, material) in plot_materials.iter_mut() {
+        if material.base.hovered && material.base.blend_hover != 1.
+            || !material.base.hovered && material.base.blend_hover != 0.
+        {
+            let sign = match material.base.hovered {
+                true => 1.,
+                false => -1.,
+            };
+            material.base.blend_hover += sign * time.delta_secs() * PLOT_BLEND_SPEED;
+            material.base.blend_hover = material.base.blend_hover.clamp(0., 1.);
+        }
+    }
+    for (_, material) in icon_materials.iter_mut() {
+        if material.hovered && material.blend_hover != 1.
+            || !material.hovered && material.blend_hover != 0.
+        {
+            let sign = match material.hovered {
+                true => 1.,
+                false => -1.,
+            };
+            material.blend_hover += sign * time.delta_secs() * ACTION_ICON_BLEND_SPEED;
+            material.blend_hover = material.blend_hover.clamp(0., 1.);
+        }
     }
 }
