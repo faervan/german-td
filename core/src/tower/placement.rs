@@ -56,6 +56,7 @@ fn spawn_placements(
             .observe(plot_change_hover_state::<Pointer<Out>, false>)
             .observe(
                 |event: On<Pointer<Click>>,
+                 mut focused_ui: ResMut<FocusedUi>,
                  query: Query<&Transform>,
                  mut commands: Commands,
                  mut meshes: ResMut<Assets<Mesh>>,
@@ -74,6 +75,7 @@ fn spawn_placements(
                                 NotShadowReceiver,
                             ))
                             .id();
+                        focused_ui.register_focus(ring_id);
 
                         let mut actions = vec![];
                         for (handle, def) in tower_lib.entries.values().filter_map(|handle| {
@@ -86,7 +88,7 @@ fn spawn_placements(
 
                             let on_click = move |_event: On<Pointer<Click>>,
                                  mut commands: Commands,
-                                 mut tower_spawner: MessageWriter<SpawnTower,>| {
+                                 mut tower_spawner: MessageWriter<SpawnTower>| {
                                     commands.entity(plot_id).despawn();
                                     commands.entity(ring_id).despawn();
                                     tower_spawner.write(SpawnTower {
@@ -102,7 +104,12 @@ fn spawn_placements(
 
                         commands
                             .entity(ring_id)
-                            .insert(TowerPlacementRing { actions });
+                            .insert(TowerPlacementRing { actions })
+                            .observe(
+                                |event: On<Pointer<Click>>, mut focused_ui: ResMut<FocusedUi>| {
+                                    focused_ui.register_click(event.entity);
+                                },
+                            );
                     }
                 },
             );

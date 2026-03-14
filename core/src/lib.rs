@@ -34,6 +34,7 @@ pub fn default_plugins<STATE: States + Copy>(
             utils::delayed_despawn::plugin,
             utils::value_animation::plugin,
             utils::billboard::plugin(game_state),
+            utils::ui_deselection::plugin(game_state),
             skein_spawners::plugin,
             enemy::plugin(game_state),
             maps::plugin(game_state),

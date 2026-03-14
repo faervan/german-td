@@ -38,6 +38,7 @@ pub use crate::utils::InspectNoneExt as _;
 pub use crate::utils::audio::*;
 pub use crate::utils::billboard::*;
 pub use crate::utils::delayed_despawn::*;
+pub use crate::utils::ui_deselection::*;
 pub use crate::utils::value_animation::AnimateValueExt as _;
 
 pub use crate::components::*;
