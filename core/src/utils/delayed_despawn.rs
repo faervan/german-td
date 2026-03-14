@@ -18,7 +18,7 @@ fn delayed_despawn(
     mut despawn: Local<Vec<Entity>>,
 ) {
     for entity in despawn.drain(..) {
-        commands.entity(entity).despawn();
+        commands.entity(entity).try_despawn();
     }
 
     for entity in query {
@@ -37,7 +37,9 @@ fn delayed_children_despawn(
     mut despawn: Local<Vec<Entity>>,
 ) {
     for entity in despawn.drain(..) {
-        commands.entity(entity).despawn_children();
+        if let Ok(mut entity_cmds) = commands.get_entity(entity) {
+            entity_cmds.despawn_children();
+        }
     }
 
     for entity in query {
@@ -63,7 +65,7 @@ fn despawn_after(
     for (entity, mut despawn_after) in query {
         despawn_after.0.tick(time.delta());
         if despawn_after.0.is_finished() {
-            commands.entity(entity).despawn();
+            commands.entity(entity).try_despawn();
         }
     }
 }
