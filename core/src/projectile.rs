@@ -80,12 +80,15 @@ fn move_projectile(
 
             if direction.length() < 1.0 {
                 despawn = true;
-                target_health.0 -= projectile.damage;
-                if target_health.0.is_sign_negative() {
-                    commands.entity(target_entity).despawn();
-                    commands.spawn(sound_effect(audio_handles.enemy_death_from_time(&time)));
-
-                    enemy_killed.write(EnemyKilled(enemy.definition.clone()));
+                // If the health is negative, this enemy was already killed by another projectile
+                // and is already queued to be despawned
+                if !target_health.0.is_sign_negative() {
+                    target_health.0 -= projectile.damage;
+                    if target_health.0.is_sign_negative() {
+                        commands.entity(target_entity).despawn();
+                        commands.spawn(sound_effect(audio_handles.enemy_death_from_time(&time)));
+                        enemy_killed.write(EnemyKilled(enemy.definition.clone()));
+                    }
                 }
             }
         } else {

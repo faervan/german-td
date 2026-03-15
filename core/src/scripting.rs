@@ -10,7 +10,10 @@ pub fn enemy_spawner_runtime() -> Runtime<NoCtx> {
         #[copy] type Duration = Val<Duration>;
         #[clone] type SpawnItem = Val<(Duration, Handle<EnemyDefinition>)>;
 
-        fn get_enemy_handle(name: Arc<str>, library: Val<AssetLibrary<EnemyDefinition>>) -> Option<Val<Handle<EnemyDefinition>>> {
+        fn get_enemy_handle(
+            name: Arc<str>,
+            library: Val<AssetLibrary<EnemyDefinition>>
+        ) -> Option<Val<Handle<EnemyDefinition>>> {
             library.entries.get(name.as_str()).map(|h| Val(h.clone()))
         }
 

@@ -48,8 +48,7 @@ impl<T: RonAsset> AssetLoader for RonAssetLoader<T> {
         reader: &mut dyn bevy::asset::io::Reader,
         _settings: &Self::Settings,
         load_context: &mut bevy::asset::LoadContext,
-    ) -> impl bevy::tasks::ConditionalSendFuture<Output = std::result::Result<Self::Asset, Self::Error>>
-    {
+    ) -> impl bevy::tasks::ConditionalSendFuture<Output = Result<Self::Asset, Self::Error>> {
         async {
             let mut bytes = String::new();
             reader.read_to_string(&mut bytes).await?;
