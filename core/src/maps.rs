@@ -206,6 +206,9 @@ fn advance_wave_spawning(
             if wave.current < wave.last {
                 wave.current += 1;
                 wave_spawner.write(StartWave(wave.current));
+                if wave.current == wave.last {
+                    wave.cooldown = None;
+                }
             } else {
                 debug!("All waves finished!");
                 wave.cooldown = None;

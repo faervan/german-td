@@ -97,7 +97,7 @@ fn update_wave_ui(
             wave.current + 1,
             timer.remaining_secs().round()
         )
-    } else if wave.cooldown.is_some() {
+    } else if wave.cooldown.is_some() || wave.active_spawners > 0 {
         format!(
             "{} spawner{} active",
             wave.active_spawners,
