@@ -1,6 +1,8 @@
 mod animation_target;
 pub use animation_target::*;
 
+pub mod audio;
+
 mod inspect_none;
 pub use inspect_none::InspectNoneExt;
 
@@ -13,3 +15,7 @@ pub mod value_animation;
 
 mod linear_interpolation;
 pub use linear_interpolation::*;
+
+pub mod billboard;
+
+pub mod ui_deselection;

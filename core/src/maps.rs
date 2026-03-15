@@ -2,10 +2,7 @@ use crate::prelude::*;
 
 pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
     move |app: &mut App| {
-        app.insert_resource(Wave(1));
-
         app.add_message::<SpawnMap>();
-        app.add_message::<SpawnSpawners>();
         app.add_message::<StartWave>();
 
         app.add_systems(
@@ -17,19 +14,24 @@ pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
 
         app.add_systems(
             Update,
-            spawn_spawners
-                .run_if(on_message::<SpawnSpawners>)
+            start_wave
+                .run_if(resource_exists::<WaveSpawning>)
+                .run_if(on_message::<StartWave>)
                 .run_if(in_state(game_state)),
         );
 
         app.add_systems(
             Update,
-            start_wave
-                .run_if(on_message::<StartWave>)
+            spawn_from_spawner
+                .run_if(resource_exists::<WaveSpawning>)
                 .run_if(in_state(game_state)),
         );
-
-        app.add_systems(Update, spawn_from_spawner.run_if(in_state(game_state)));
+        app.add_systems(
+            Update,
+            advance_wave_spawning
+                .run_if(resource_exists::<WaveSpawning>)
+                .run_if(in_state(game_state)),
+        );
     }
 }
 
@@ -46,6 +48,7 @@ pub struct SpawnMap {
 
 fn spawn_maps(
     mut events: MessageReader<SpawnMap>,
+    #[cfg(not(feature = "editor"))] mut placement_spawner: MessageWriter<SpawnTowerPlacement>,
     mut commands: Commands,
     definitions: Res<Assets<MapDefinition>>,
 ) {
@@ -61,13 +64,18 @@ fn spawn_maps(
                 definition: spawn.definition.clone(),
             },
         ));
+
+        #[cfg(not(feature = "editor"))]
+        for position in def.tower_plots.clone() {
+            placement_spawner.write(SpawnTowerPlacement { position });
+        }
     }
 }
 
 /// Spawner per wave
 #[derive(Debug, Component, Reflect)]
 #[reflect(Component)]
-pub struct Spawner {
+struct Spawner {
     position: Vec3,
     spawns: Vec<(Duration, Handle<EnemyDefinition>)>,
     /// The path that spawned enemies will follow
@@ -76,7 +84,7 @@ pub struct Spawner {
 }
 
 impl Spawner {
-    pub fn new(
+    fn new(
         position: Vec3,
         spawns: Vec<(Duration, Handle<EnemyDefinition>)>,
         waypoints: Vec<Vec3>,
@@ -92,10 +100,12 @@ impl Spawner {
 
 fn spawn_from_spawner(
     time: Res<Time>,
-    mut spawners: Query<&mut Spawner>,
+    mut commands: Commands,
+    mut spawners: Query<(Entity, &mut Spawner)>,
     mut spawn_enemy: MessageWriter<SpawnEnemy>,
+    mut wave: ResMut<WaveSpawning>,
 ) {
-    for mut spawner in &mut spawners {
+    for (spawner_entity, mut spawner) in &mut spawners {
         if let Some(spawn) = spawner.spawns.last().cloned() {
             spawner.elapsed += time.delta();
 
@@ -110,92 +120,98 @@ fn spawn_from_spawner(
 
                 spawner.spawns.pop();
             }
+        } else {
+            commands.entity(spawner_entity).despawn();
+            wave.active_spawners -= 1;
         }
     }
 }
 
 #[derive(Debug, Message, Reflect)]
-pub struct SpawnSpawners {
-    map_definition: Handle<MapDefinition>,
-    wave: usize,
-}
+struct StartWave(usize);
 
-fn spawn_spawners(
-    mut events: MessageReader<SpawnSpawners>,
+fn start_wave(
+    mut start_wave: MessageReader<StartWave>,
+    mut wave_spawning: ResMut<WaveSpawning>,
+    maps: Query<&Map>,
     mut commands: Commands,
     definitions: Res<Assets<MapDefinition>>,
     mut scripts: ResMut<Assets<ScriptAsset>>,
     enemy_lib: EnemyLibrary,
 ) {
-    for spawn in events.read() {
-        let map_definition = definitions.get(&spawn.map_definition).unwrap();
-        info!(
-            "Spawning spawners for {} wave {}",
-            map_definition.name(),
-            spawn.wave
-        );
+    for wave in start_wave.read() {
+        if let Ok(map) = maps.single() {
+            let map_definition = definitions.get(&map.definition).unwrap();
+            info!(
+                "Spawning spawners for {} wave {}",
+                map_definition.name(),
+                wave.0
+            );
 
-        for (i, path) in map_definition.paths.iter().enumerate() {
-            let position = map_definition.waypoints().get(path.waypoints[0]).unwrap();
-            let Some(spawn_function) = path.spawner.get_spawner_function(&mut scripts) else {
-                warn!(
-                    "Failed to get spawn function for path {i} of {}",
-                    map_definition.name()
-                );
-                continue;
-            };
-            let spawns: Vec<_> = spawn_function
-                .call(spawn.wave as u32, scripting::Val(enemy_lib.clone()))
-                .to_vec()
-                .into_iter()
-                .map(|val| val.0)
-                .collect();
+            wave_spawning.active_spawners = map_definition.paths.len();
 
-            let waypoints = path
-                .waypoints
-                .iter()
-                .map(|waypoint_id| map_definition.waypoints()[*waypoint_id])
-                .collect();
+            for (i, path) in map_definition.paths.iter().enumerate() {
+                let position = map_definition.waypoints().get(path.waypoints[0]).unwrap();
+                let Some(spawn_function) = path.spawner.get_spawner_function(&mut scripts) else {
+                    warn!(
+                        "Failed to get spawn function for path {i} of {}",
+                        map_definition.name()
+                    );
+                    continue;
+                };
+                let spawns: Vec<_> = spawn_function
+                    .call(wave.0 as u32, scripting::Val(enemy_lib.clone()))
+                    .to_vec()
+                    .into_iter()
+                    .map(|val| val.0)
+                    .collect();
 
-            commands.spawn((
-                Name::new(format!("Spawner {} at {}", i, position)),
-                Spawner::new(*position, spawns.clone(), waypoints),
-            ));
+                let waypoints = path
+                    .waypoints
+                    .iter()
+                    .map(|waypoint_id| map_definition.waypoints()[*waypoint_id])
+                    .collect();
+
+                commands.spawn((
+                    Name::new(format!("Spawner {} at {}", i, position)),
+                    Spawner::new(*position, spawns.clone(), waypoints),
+                ));
+            }
         }
     }
 }
 
-// This is akward
-
-#[derive(Debug, Default, Resource, Reflect)]
+#[derive(Resource, Reflect, Debug)]
 #[reflect(Resource)]
-pub struct Wave(pub usize);
+pub struct WaveSpawning {
+    pub current: usize,
+    pub last: usize,
+    /// Spawners spawned by the current wave that are still spawning new enemies
+    pub active_spawners: usize,
+    /// Cooldown before and between waves
+    pub cooldown: Option<Timer>,
+}
 
-#[derive(Debug, Message, Reflect)]
-pub struct StartWave;
-
-fn start_wave(
-    mut start_wave: MessageReader<StartWave>,
-    maps: Query<&Map>,
-    map_defs: Res<Assets<MapDefinition>>,
-    mut spawn_spawners: MessageWriter<SpawnSpawners>,
-    mut wave: ResMut<Wave>,
+fn advance_wave_spawning(
+    time: Res<Time>,
+    mut wave: ResMut<WaveSpawning>,
+    mut wave_spawner: MessageWriter<StartWave>,
 ) {
-    for _ in start_wave.read() {
-        if let Ok(map) = maps.single()
-            && let Some(map_def) = map_defs.get(&map.definition)
-        {
-            spawn_spawners.write(SpawnSpawners {
-                map_definition: map.definition.clone(),
-                wave: wave.0,
-            });
-            wave.0 += 1;
-            if wave.0 > map_def.waves() {
-                info!(
-                    "Finished all {} waves, restarting at first wave",
-                    map_def.waves()
-                );
-                wave.0 = 1;
+    if wave.active_spawners == 0
+        && let Some(timer) = wave.cooldown.as_mut()
+    {
+        timer.tick(time.delta());
+        if timer.is_finished() {
+            timer.reset();
+            if wave.current < wave.last {
+                wave.current += 1;
+                wave_spawner.write(StartWave(wave.current));
+                if wave.current == wave.last {
+                    wave.cooldown = None;
+                }
+            } else {
+                debug!("All waves finished!");
+                wave.cooldown = None;
             }
         }
     }

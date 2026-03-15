@@ -25,6 +25,7 @@ pub use crate::assets::AssetLibrary;
 pub use crate::assets::AssetResourceLoader as _;
 pub use crate::assets::LibraryInitExt as _;
 pub use crate::assets::all_assets_loaded;
+pub use crate::assets::audio::GameSoundHandles;
 pub use crate::assets::enemies::EnemyDefinition;
 pub use crate::assets::maps::MapDefinition;
 pub use crate::assets::projectile::ProjectileDefinition;
@@ -34,7 +35,10 @@ pub use crate::assets::towers::TowerDefinition;
 pub use crate::physics_layers::GameLayer;
 pub use crate::scripting::ScriptAssetExt as _;
 pub use crate::utils::InspectNoneExt as _;
+pub use crate::utils::audio::*;
+pub use crate::utils::billboard::*;
 pub use crate::utils::delayed_despawn::*;
+pub use crate::utils::ui_deselection::*;
 pub use crate::utils::value_animation::AnimateValueExt as _;
 
 pub use crate::components::*;

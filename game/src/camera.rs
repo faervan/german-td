@@ -1,4 +1,6 @@
 use bevy::{
+    anti_alias::fxaa::Fxaa,
+    core_pipeline::prepass::DepthPrepass,
     input::common_conditions::input_just_pressed,
     window::{CursorGrabMode, CursorOptions, PrimaryWindow},
 };
@@ -26,6 +28,13 @@ fn spawn(mut commands: Commands) {
     commands.spawn((
         Camera3d::default(),
         PrimaryCamera,
+        PhysicsPickable,
+        // Must enable the [`DepthPrepass`] to render forward decals
+        DepthPrepass,
+        // Must disable [`Msaa`] to use decals on WebGPU
+        Msaa::Off,
+        // [`Fxaa`] is a fine alternative to [`Msaa`] for anti-aliasing
+        Fxaa::default(),
         Transform::from_translation(Vec3 {
             x: 0.0,
             y: 100.0,

@@ -1,7 +1,12 @@
 use crate::{prelude::*, utils::on_ready_insert_animation_target};
 
+mod placement;
+pub use placement::*;
+
 pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
     move |app: &mut App| {
+        app.add_plugins(placement::plugin(game_state));
+
         app.add_message::<SpawnTower>();
 
         app.add_systems(

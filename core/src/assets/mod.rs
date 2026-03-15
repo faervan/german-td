@@ -16,6 +16,8 @@ pub mod maps;
 pub mod projectile;
 pub mod towers;
 
+pub mod audio;
+
 pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin {
     move |app: &mut App| {
         app.add_plugins((
@@ -25,6 +27,7 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
             maps::plugin(loading_state),
             towers::plugin(loading_state),
             projectile::plugin(loading_state),
+            audio::plugin,
         ));
     }
 }
