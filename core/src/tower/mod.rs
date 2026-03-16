@@ -84,7 +84,7 @@ fn spawn_towers(
             ))
             .observe(on_ready_insert_animation_target);
 
-        commands.entity(spawn.plot).despawn();
+        commands.entity(spawn.plot).try_despawn();
     }
 }
 
