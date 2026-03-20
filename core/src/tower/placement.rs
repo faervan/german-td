@@ -66,7 +66,7 @@ fn spawn_placements(
                     if let Ok(transform) = query.get(event.entity) {
                         let ring_id = commands
                             .spawn((
-                                Name::new("Tower selection thing"),
+                                Name::new("Tower selection ring"),
                                 Transform::from_translation(transform.translation + Vec3::Y * 6.),
                                 Billboarded,
                                 Mesh3d(meshes.add(Plane3d::new(Vec3::Z, Vec2::splat(7.)))),
@@ -98,13 +98,19 @@ fn spawn_placements(
                                 };
 
                             let entity_id = entity_cmds.id();
-                            entity_cmds.insert(Observer::new(on_click).with_entity(entity_id));
+                            entity_cmds.insert((
+                                Observer::new(on_click).with_entity(entity_id),
+                                TowerRingAction { cost: def.cost },
+                            ));
                             actions.push((entity_id, def.icon.clone()));
                         }
 
                         commands
                             .entity(ring_id)
-                            .insert(TowerPlacementRing { actions })
+                            .insert(TowerPlacementRing {
+                                actions,
+                                hovered_action_cost: None,
+                            })
                             .observe(
                                 |event: On<Pointer<Click>>, mut focused_ui: ResMut<FocusedUi>| {
                                     focused_ui.register_click(event.entity);
@@ -142,11 +148,14 @@ impl Material for TowerPlotMaterial {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 #[component(on_add)]
 /// TODO! Maybe rename this, as it is used for the upgrade ring as well
 struct TowerPlacementRing {
     actions: Vec<(Entity, Handle<Image>)>,
+    /// The amount of gold needed to perform the currently hovered action
+    hovered_action_cost: Option<usize>,
 }
 
 impl TowerPlacementRing {
@@ -195,6 +204,13 @@ impl Material for TowerRingMaterial {
     }
 }
 
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+struct TowerRingAction {
+    /// Gold required for this action
+    cost: usize,
+}
+
 #[derive(Asset, TypePath, AsBindGroup, Clone, Default)]
 struct TowerRingActionMaterial {
     hovered: bool,
@@ -218,12 +234,21 @@ impl Material for TowerRingActionMaterial {
 fn action_icon_change_hover_state<EVENT: EntityEvent, const SET_HOVERED: bool>(
     event: On<EVENT>,
     mut commands: Commands,
-    query: Query<(&Transform, &MeshMaterial3d<TowerRingActionMaterial>)>,
+    query: Query<(
+        &Transform,
+        &MeshMaterial3d<TowerRingActionMaterial>,
+        &ChildOf,
+        &TowerRingAction,
+    )>,
+    mut ring_query: Query<&mut TowerPlacementRing>,
     mut materials: ResMut<Assets<TowerRingActionMaterial>>,
 ) {
-    if let Ok((transform, handle)) = query.get(event.event_target())
+    if let Ok((transform, handle, parent, action)) = query.get(event.event_target())
         && let Some(material) = materials.get_mut(&handle.0)
     {
+        if let Ok(mut ring) = ring_query.get_mut(parent.0) {
+            ring.hovered_action_cost = SET_HOVERED.then_some(action.cost);
+        }
         material.hovered = SET_HOVERED;
         let scale = match SET_HOVERED {
             true => Vec3::splat(1.1),
