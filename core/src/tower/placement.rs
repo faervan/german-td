@@ -89,11 +89,11 @@ fn spawn_placements(
                             let on_click = move |_event: On<Pointer<Click>>,
                                  mut commands: Commands,
                                  mut tower_spawner: MessageWriter<SpawnTower>| {
-                                    commands.entity(plot_id).despawn();
                                     commands.entity(ring_id).despawn();
                                     tower_spawner.write(SpawnTower {
                                         position,
                                         definition: handle.clone(),
+                                        plot: plot_id,
                                     });
                                 };
 

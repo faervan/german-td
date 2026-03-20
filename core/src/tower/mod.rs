@@ -36,16 +36,31 @@ pub struct Tower {
 pub struct SpawnTower {
     pub position: Vec3,
     pub definition: Handle<TowerDefinition>,
+    pub plot: Entity,
 }
 
 fn spawn_towers(
+    mut gold: Option<ResMut<Gold>>,
     mut events: MessageReader<SpawnTower>,
     mut commands: Commands,
     definitions: Res<Assets<TowerDefinition>>,
+    mut not_enough_gold: MessageWriter<NotEnoughGold>,
 ) {
     for spawn in events.read() {
         let def = definitions.get(&spawn.definition).unwrap();
         info!("Spawning tower {} at {:?}", def.name, spawn.position);
+
+        if let Some(ref mut gold) = gold {
+            // TODO: I am pretty sure we should not cast here; Make cost u32?
+            let cost = def.cost as usize;
+            if gold.0 < cost {
+                info!("Not enough gold ({})!", cost);
+                not_enough_gold.write(NotEnoughGold);
+                return;
+            }
+
+            gold.0 -= cost;
+        }
 
         let mut attack_timer = Timer::new(def.attack_duration, TimerMode::Repeating);
         attack_timer.finish();
@@ -68,6 +83,8 @@ fn spawn_towers(
                 CollisionEventsEnabled,
             ))
             .observe(on_ready_insert_animation_target);
+
+        commands.entity(spawn.plot).try_despawn();
     }
 }
 

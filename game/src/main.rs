@@ -1,9 +1,9 @@
 mod camera;
 mod dev_tools;
 mod game_over;
+mod gold;
 mod prelude;
 mod waves;
-
 use german_td_core::{asset_plugin, default_plugins};
 
 use crate::prelude::*;
@@ -32,6 +32,7 @@ fn main() {
         dev_tools::plugin,
         game_over::plugin,
         waves::plugin,
+        gold::plugin,
     ));
 
     // Our states
