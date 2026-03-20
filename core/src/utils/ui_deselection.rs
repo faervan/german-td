@@ -1,3 +1,6 @@
+#[cfg(feature = "dev")]
+use bevy_egui::EguiContext;
+
 use crate::prelude::*;
 
 pub(crate) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
@@ -35,7 +38,17 @@ fn on_click(_event: On<Pointer<Click>>, mut focused_ui: ResMut<FocusedUi>) {
     focused_ui.received_click = true;
 }
 
-fn update_focused(mut focused_ui: ResMut<FocusedUi>, mut commands: Commands) {
+fn update_focused(
+    mut focused_ui: ResMut<FocusedUi>,
+    mut commands: Commands,
+    #[cfg(feature = "dev")] mut egui_context: Single<&mut EguiContext, With<PrimaryEguiContext>>,
+) {
+    #[cfg(feature = "dev")]
+    if egui_context.get_mut().is_pointer_over_area() {
+        focused_ui.clicked = HashSet::new();
+        focused_ui.received_click = false;
+        return;
+    }
     if !focused_ui.received_click {
         focused_ui.clicked = HashSet::new();
         return;
