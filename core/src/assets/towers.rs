@@ -24,7 +24,7 @@ struct TowerAsset {
     pub damage_factor: f32,
     pub attack_duration_ms: u64,
     pub range: f32,
-    pub cost: f32,
+    pub cost: usize,
 }
 
 #[derive(Asset, Reflect, Debug)]
@@ -39,7 +39,7 @@ pub struct TowerDefinition {
     pub damage_factor: f32,
     pub attack_duration: Duration,
     pub range: f32,
-    pub cost: f32,
+    pub cost: usize,
 }
 
 impl RonAsset for TowerAsset {
