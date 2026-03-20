@@ -8,9 +8,9 @@ fn fragment(
 	let y = mesh.uv.y - 0.5;
 	let distance_from_origin = sqrt(x * x + y * y);
 
-	if distance_from_origin > 0.5 || distance_from_origin < 0.4 {
-		return vec4f(0., 0., 0., 0.);
-	} else {
+	if distance_from_origin < 0.5 && distance_from_origin > 0.4 || abs(y) < 0.06 {
 		return vec4f(0.1, 0.05, 0.1, 1.);
+	} else {
+		return vec4f(0., 0., 0., 0.);
 	}
 }
