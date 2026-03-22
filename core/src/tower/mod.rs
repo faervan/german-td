@@ -51,8 +51,7 @@ fn spawn_towers(
         info!("Spawning tower {} at {:?}", def.name, spawn.position);
 
         if let Some(ref mut gold) = gold {
-            // TODO: I am pretty sure we should not cast here; Make cost u32?
-            let cost = def.cost as usize;
+            let cost = def.cost;
             if gold.0 < cost {
                 info!("Not enough gold ({})!", cost);
                 not_enough_gold.write(NotEnoughGold);

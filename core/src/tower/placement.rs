@@ -1,6 +1,10 @@
 use bevy::{
+    asset::RenderAssetUsages,
+    camera::RenderTarget,
     pbr::decal::{ForwardDecal, ForwardDecalMaterial, ForwardDecalMaterialExt},
-    render::render_resource::AsBindGroup,
+    render::render_resource::{
+        AsBindGroup, Extent3d, TextureDimension, TextureFormat, TextureUsages,
+    },
 };
 
 use crate::prelude::*;
@@ -18,6 +22,8 @@ pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
             spawn_placements.run_if(on_message::<SpawnTowerPlacement>.and(in_state(game_state))),
         );
         app.add_systems(Update, blend_hover.run_if(in_state(game_state)));
+
+        app.add_systems(Update, update_gold_cost_ui.run_if(in_state(game_state)));
     }
 }
 
@@ -60,13 +66,15 @@ fn spawn_placements(
                  query: Query<&Transform>,
                  mut commands: Commands,
                  mut meshes: ResMut<Assets<Mesh>>,
+                 mut images: ResMut<Assets<Image>>,
+                 mut materials: ResMut<Assets<StandardMaterial>>,
                  mut ring_materials: ResMut<Assets<TowerRingMaterial>>,
                  tower_lib: TowerLibrary,
                  tower_defs: Res<Assets<TowerDefinition>>| {
                     if let Ok(transform) = query.get(event.entity) {
                         let ring_id = commands
                             .spawn((
-                                Name::new("Tower selection thing"),
+                                Name::new("Tower selection ring"),
                                 Transform::from_translation(transform.translation + Vec3::Y * 6.),
                                 Billboarded,
                                 Mesh3d(meshes.add(Plane3d::new(Vec3::Z, Vec2::splat(7.)))),
@@ -98,13 +106,28 @@ fn spawn_placements(
                                 };
 
                             let entity_id = entity_cmds.id();
-                            entity_cmds.insert(Observer::new(on_click).with_entity(entity_id));
+                            entity_cmds.insert((
+                                Observer::new(on_click).with_entity(entity_id),
+                                TowerRingAction { cost: def.cost },
+                            ));
                             actions.push((entity_id, def.icon.clone()));
                         }
 
+                        let cost_text_entity = setup_gold_cost_ui(
+                            &mut commands,
+                            &mut *meshes,
+                            &mut *materials,
+                            &mut *images,
+                            ring_id,
+                        );
+
                         commands
                             .entity(ring_id)
-                            .insert(TowerPlacementRing { actions })
+                            .insert(TowerPlacementRing {
+                                actions,
+                                hovered_action_cost: None,
+                                cost_text_entity,
+                            })
                             .observe(
                                 |event: On<Pointer<Click>>, mut focused_ui: ResMut<FocusedUi>| {
                                     focused_ui.register_click(event.entity);
@@ -142,11 +165,16 @@ impl Material for TowerPlotMaterial {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
+#[reflect(Component)]
 #[component(on_add)]
 /// TODO! Maybe rename this, as it is used for the upgrade ring as well
 struct TowerPlacementRing {
     actions: Vec<(Entity, Handle<Image>)>,
+    /// The amount of gold needed to perform the currently hovered action
+    hovered_action_cost: Option<usize>,
+    /// The [`Entity`] holding the [`Text`] node to display the gold cost
+    cost_text_entity: Entity,
 }
 
 impl TowerPlacementRing {
@@ -195,6 +223,13 @@ impl Material for TowerRingMaterial {
     }
 }
 
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+struct TowerRingAction {
+    /// Gold required for this action
+    cost: usize,
+}
+
 #[derive(Asset, TypePath, AsBindGroup, Clone, Default)]
 struct TowerRingActionMaterial {
     hovered: bool,
@@ -218,12 +253,21 @@ impl Material for TowerRingActionMaterial {
 fn action_icon_change_hover_state<EVENT: EntityEvent, const SET_HOVERED: bool>(
     event: On<EVENT>,
     mut commands: Commands,
-    query: Query<(&Transform, &MeshMaterial3d<TowerRingActionMaterial>)>,
+    query: Query<(
+        &Transform,
+        &MeshMaterial3d<TowerRingActionMaterial>,
+        &ChildOf,
+        &TowerRingAction,
+    )>,
+    mut ring_query: Query<&mut TowerPlacementRing>,
     mut materials: ResMut<Assets<TowerRingActionMaterial>>,
 ) {
-    if let Ok((transform, handle)) = query.get(event.event_target())
+    if let Ok((transform, handle, parent, action)) = query.get(event.event_target())
         && let Some(material) = materials.get_mut(&handle.0)
     {
+        if let Ok(mut ring) = ring_query.get_mut(parent.0) {
+            ring.hovered_action_cost = SET_HOVERED.then_some(action.cost);
+        }
         material.hovered = SET_HOVERED;
         let scale = match SET_HOVERED {
             true => Vec3::splat(1.1),
@@ -265,6 +309,115 @@ fn blend_hover(
             };
             material.blend_hover += sign * time.delta_secs() * ACTION_ICON_BLEND_SPEED;
             material.blend_hover = material.blend_hover.clamp(0., 1.);
+        }
+    }
+}
+
+/// see <https://bevy.org/examples/ui-user-interface/render-ui-to-texture/>
+fn setup_gold_cost_ui(
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<StandardMaterial>,
+    images: &mut Assets<Image>,
+    ring_id: Entity,
+) -> Entity {
+    let size = Extent3d {
+        width: 512,
+        height: 512,
+        ..default()
+    };
+
+    // This is the texture that will be rendered to.
+    let mut image = Image::new_fill(
+        size,
+        TextureDimension::D2,
+        &[0, 0, 0, 0],
+        TextureFormat::Bgra8UnormSrgb,
+        RenderAssetUsages::default(),
+    );
+    // You need to set these texture usage flags in order to use the image as a render target
+    image.texture_descriptor.usage =
+        TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST | TextureUsages::RENDER_ATTACHMENT;
+
+    let image_handle = images.add(image);
+
+    let texture_camera = commands
+        .spawn((
+            Camera2d,
+            Camera {
+                // render before the "main pass" camera
+                order: -1,
+                clear_color: ClearColorConfig::Custom(Color::default().with_alpha(0.)),
+                ..default()
+            },
+            RenderTarget::Image(image_handle.clone().into()),
+        ))
+        .id();
+
+    let root = commands
+        .spawn((
+            Node {
+                // Cover the whole image
+                width: percent(100),
+                height: percent(100),
+                flex_direction: FlexDirection::Column,
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            UiTargetCamera(texture_camera),
+        ))
+        .id();
+
+    let text_id = commands
+        .spawn((
+            Text::new(""),
+            TextFont {
+                font_size: 40.0,
+                ..default()
+            },
+            TextColor::WHITE,
+            ChildOf(root),
+        ))
+        .id();
+
+    let mesh = meshes.add(Plane3d::new(Vec3::Z, Vec2::splat(10.)));
+    let material = materials.add(StandardMaterial {
+        base_color_texture: Some(image_handle),
+        unlit: true,
+        alpha_mode: AlphaMode::Blend,
+        ..default()
+    });
+
+    commands.spawn((
+        Name::new("Gold cost texture"),
+        Mesh3d(mesh),
+        MeshMaterial3d(material),
+        Transform::from_xyz(0., 0., 0.1),
+        Pickable::IGNORE,
+        ChildOf(ring_id),
+    ));
+
+    text_id
+}
+
+fn update_gold_cost_ui(
+    gold: Res<Gold>,
+    mut text_query: Query<(&mut Text, &mut TextColor)>,
+    query: Query<&TowerPlacementRing>,
+) {
+    for ring in query {
+        if let Ok((mut text, mut color)) = text_query.get_mut(ring.cost_text_entity) {
+            text.0 = match ring.hovered_action_cost {
+                Some(cost) => {
+                    color.0 = match gold.0 >= cost {
+                        true => Color::srgb(1., 1., 0.),
+                        false => Color::srgb(1., 0., 0.),
+                    };
+                    format!("Gold: {cost}")
+                }
+                None => String::new(),
+            };
         }
     }
 }
