@@ -23,6 +23,7 @@ pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
         );
         app.add_systems(Update, blend_hover.run_if(in_state(game_state)));
 
+        #[cfg(not(feature = "editor"))]
         app.add_systems(Update, update_gold_cost_ui.run_if(in_state(game_state)));
     }
 }
@@ -401,6 +402,7 @@ fn setup_gold_cost_ui(
     text_id
 }
 
+#[cfg(not(feature = "editor"))]
 fn update_gold_cost_ui(
     gold: Res<Gold>,
     mut text_query: Query<(&mut Text, &mut TextColor)>,
