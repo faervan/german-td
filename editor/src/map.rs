@@ -1,5 +1,4 @@
 use bevy_inspector_egui::bevy_inspector::ui_for_value;
-use egui::Ui;
 
 use crate::{focus::EntitySelectChange, prelude::*};
 

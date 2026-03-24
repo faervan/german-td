@@ -1,6 +1,5 @@
 use bevy::window::PrimaryWindow;
 use bevy_egui::{EguiContext, EguiPrimaryContextPass};
-use egui::Ui;
 
 use crate::prelude::*;
 

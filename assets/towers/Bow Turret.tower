@@ -7,4 +7,5 @@ damage_factor: 5.,
 attack_duration_ms: 1000,
 range: 50.,
 cost: 10,
+upgrades: [],
 )
