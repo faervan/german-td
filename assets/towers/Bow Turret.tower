@@ -7,5 +7,5 @@ damage_factor: 5.,
 attack_duration_ms: 1000,
 range: 50.,
 cost: 10,
-damage_type: Area ( radius: 100.0 )
+damage_type: Area ( radius: 10000.0 )
 )
