@@ -15,7 +15,7 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
     }
 }
 
-#[derive(Debug, Reflect, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Reflect, Serialize, Deserialize)]
 pub enum DamageType {
     Single,
     Area { radius: f32 },

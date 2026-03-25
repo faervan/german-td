@@ -20,6 +20,7 @@ pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
 pub struct Projectile {
     target: Entity,
     damage: f32,
+    damage_type: DamageType,
 }
 
 #[derive(Message, Debug)]
@@ -29,6 +30,7 @@ pub struct SpawnProjectile {
     pub definition: Handle<ProjectileDefinition>,
     /// A multiplier to the projectiles base damage depending on the tower that shot it
     pub damage_factor: f32,
+    pub damage_type: DamageType,
 }
 
 fn spawn_projectile(
@@ -46,6 +48,7 @@ fn spawn_projectile(
             Projectile {
                 target: spawn.target,
                 damage: def.damage * spawn.damage_factor,
+                damage_type: spawn.damage_type,
             },
             // Physics
             RigidBody::Kinematic,
