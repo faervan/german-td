@@ -15,6 +15,12 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
     }
 }
 
+#[derive(Debug, Reflect, Serialize, Deserialize)]
+pub enum DamageType {
+    Single,
+    Area { radius: f32 },
+}
+
 #[derive(TypePath, Debug, Serialize, Deserialize)]
 struct TowerAsset {
     pub name: String,
@@ -25,6 +31,7 @@ struct TowerAsset {
     pub attack_duration_ms: u64,
     pub range: f32,
     pub cost: usize,
+    pub damage_type: DamageType,
 }
 
 #[derive(Asset, Reflect, Debug)]
@@ -40,6 +47,7 @@ pub struct TowerDefinition {
     pub attack_duration: Duration,
     pub range: f32,
     pub cost: usize,
+    pub damage_type: DamageType,
 }
 
 impl RonAsset for TowerAsset {
@@ -58,6 +66,7 @@ impl RonAsset for TowerAsset {
             attack_duration: Duration::from_millis(self.attack_duration_ms),
             range: self.range,
             cost: self.cost,
+            damage_type: self.damage_type,
         }
     }
 }
