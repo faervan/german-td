@@ -23,12 +23,6 @@ pub(super) fn plugin(app: &mut App) {
         Update,
         add_path_connection.run_if(in_state(State::Editor).and(input_just_pressed(KeyCode::KeyF))),
     );
-
-    // TODO! remove this, only for testing
-    app.add_systems(
-        Update,
-        test_script_asset.run_if(input_just_pressed(KeyCode::KeyM)),
-    );
 }
 
 #[derive(Component, Reflect)]
@@ -63,32 +57,6 @@ struct EnemyPath {
     /// Connections between two waypoint entities
     connections: Vec<(Entity, Entity)>,
     spawner: Option<(Entity, Handle<ScriptAsset>)>,
-}
-
-/// TODO! remove this, only for testing
-fn test_script_asset(
-    paths: Res<EnemyPaths>,
-    map_defs: Res<Assets<MapDefinition>>,
-    enemy_defs: Res<Assets<EnemyDefinition>>,
-    mut scripts: ResMut<Assets<ScriptAsset>>,
-    enemy_lib: EnemyLibrary,
-) {
-    for path in &paths.paths {
-        if let Some((_, script_handle)) = &path.spawner
-            && let Some(function) = script_handle.get_spawner_function(&mut scripts)
-        {
-            let map = map_defs.iter().next().unwrap().1;
-            for wave in 1..map.waves() + 1 {
-                let spawns: Vec<_> = function
-                    .call(wave as u32, scripting::Val(enemy_lib.clone()))
-                    .to_vec()
-                    .into_iter()
-                    .map(|val| (val.0.0, &enemy_defs.get(&val.0.1).unwrap().name))
-                    .collect();
-                debug!("wave {wave}: {spawns:?}");
-            }
-        }
-    }
 }
 
 #[derive(Message)]
