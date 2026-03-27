@@ -41,6 +41,37 @@ fn main() {
 
     app.init_state::<State>();
 
+    #[derive(TypePath)]
+    struct GhostLoader;
+    #[derive(Asset, TypePath)]
+    struct GhostAsset;
+    impl bevy::asset::AssetLoader for GhostLoader {
+        type Asset = GhostAsset;
+        type Settings = ();
+        type Error = String;
+        fn load(
+            &self,
+            reader: &mut dyn bevy::asset::io::Reader,
+            _settings: &Self::Settings,
+            _load_context: &mut bevy::asset::LoadContext,
+        ) -> impl bevy::tasks::ConditionalSendFuture<
+            Output = std::result::Result<Self::Asset, Self::Error>,
+        > {
+            async {
+                let mut buf = vec![];
+                let _ = reader.read_to_end(&mut buf).await;
+                Ok(GhostAsset)
+            }
+        }
+        fn extensions(&self) -> &[&str] {
+            &["blend", "blend1", "kra", "kra~", "png~"]
+        }
+    }
+    app.init_asset::<GhostAsset>();
+    app.register_asset_loader(GhostLoader);
+    app.load_folder("models");
+    app.load_folder("icons");
+
     app.add_systems(
         Update,
         set_editor_state.run_if(in_state(State::Loading).and(all_assets_loaded)),
