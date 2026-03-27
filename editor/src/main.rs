@@ -96,27 +96,47 @@ fn save(world: &mut World) {
         error!("{} cannot be converted to str", manifest_dir.display());
         return;
     };
+    let asset_dir = PathBuf::from_iter([manifest_dir_str, "assets"]);
 
     world.resource_scope(|world, script_defs: Mut<Assets<ScriptAsset>>| {
+        //
+        // Save maps
+        //
         let map_strings = world
             .resource_mut::<Assets<MapDefinition>>()
             .iter_mut()
             .filter_map(|(_, def)| def.serialize(&script_defs).ok())
             .collect::<Vec<_>>();
         for (name, serialized_string) in map_strings {
-            let path =
-                PathBuf::from_iter([manifest_dir_str, "assets", "maps", &format!("{name}.map")]);
+            let path = asset_dir.join(MapDefinition::path(&name));
             info!("Saving map {name} to {}", path.display());
             if let Err(e) = std::fs::write(path, serialized_string) {
                 error!("Saving failed: {e}");
             }
         }
+        //
+        // Save scripts
+        //
         for (_, script) in script_defs.iter() {
-            let path =
-                PathBuf::from_iter([manifest_dir_str, "assets"]).join(PathBuf::from(&script.file));
+            let path = asset_dir.join(PathBuf::from(&script.file));
             info!("Saving script {}", &script.file);
             if let Err(e) = std::fs::write(&path, &script.source) {
                 error!("Failed to save script {}: {e}", path.display());
+            }
+        }
+        //
+        // Save towers
+        //
+        let tower_strings = world
+            .resource_mut::<Assets<TowerDefinition>>()
+            .iter_mut()
+            .filter_map(|(_, def)| def.serialize().ok())
+            .collect::<Vec<_>>();
+        for (name, serialized_string) in tower_strings {
+            let path = asset_dir.join(TowerDefinition::path(&name));
+            info!("Saving tower {name} to {}", path.display());
+            if let Err(e) = std::fs::write(path, serialized_string) {
+                error!("Saving failed: {e}");
             }
         }
     });

@@ -47,6 +47,22 @@ pub struct TowerDefinition {
     pub asset: TowerAsset,
 }
 
+#[cfg(feature = "editor")]
+impl TowerDefinition {
+    /// TODO! Maybe just make [`TowerAsset`] public for the editor crate instead
+    pub fn path(name: &str) -> PathBuf {
+        TowerAsset::path(name)
+    }
+
+    /// Returns (name, serialized asset) on success
+    pub fn serialize(&mut self) -> Result<(String, String), ron::Error> {
+        use ron::ser::PrettyConfig;
+
+        ron::ser::to_string_pretty(&self.asset, PrettyConfig::default())
+            .map(|s| (self.asset.name.clone(), s))
+    }
+}
+
 impl RonAsset for TowerAsset {
     type Asset = TowerDefinition;
     const DIRECTORY: &str = "towers";
