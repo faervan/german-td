@@ -63,7 +63,7 @@ fn spawn_towers(
 
         let mut attack_timer = Timer::new(def.attack_duration, TimerMode::Repeating);
         attack_timer.finish();
-        commands
+        let tower_entity = commands
             .spawn((
                 Name::new(format!("Tower: {}", def.name)),
                 Transform::from_translation(spawn.position),
@@ -81,7 +81,16 @@ fn spawn_towers(
                 Sensor,
                 CollisionEventsEnabled,
             ))
-            .observe(on_ready_insert_animation_target);
+            .id();
+
+        {
+            let mut observer_cmds = commands.spawn_empty();
+            let observer_entity = observer_cmds.id();
+            observer_cmds.insert(on_ready_insert_animation_target(
+                observer_entity,
+                tower_entity,
+            ));
+        }
 
         commands.entity(spawn.plot).try_despawn();
     }

@@ -53,7 +53,7 @@ fn spawn_enemies(
     for spawn in events.read() {
         let def = definitions.get(&spawn.definition).unwrap();
 
-        commands
+        let enemy_entity = commands
             .spawn((
                 Name::new(format!("Enemy: {}", def.name)),
                 Transform::from_translation(spawn.position),
@@ -73,7 +73,16 @@ fn spawn_enemies(
                 CollisionLayers::new(GameLayer::Enemy, GameLayer::all_bits()),
                 GravityScale(0.),
             ))
-            .observe(on_ready_insert_animation_target);
+            .id();
+
+        {
+            let mut observer_cmds = commands.spawn_empty();
+            let observer_entity = observer_cmds.id();
+            observer_cmds.insert(on_ready_insert_animation_target(
+                observer_entity,
+                enemy_entity,
+            ));
+        }
     }
 }
 
