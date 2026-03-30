@@ -88,7 +88,6 @@ fn spawn_tower(world: &mut World, ui: &mut Ui) {
         world.write_message(SpawnTower {
             position,
             definition,
-            plot: Entity::PLACEHOLDER, // Hacky for editor
         });
 
         close_menu(world);

@@ -38,3 +38,36 @@ pub fn on_ready_insert_animation_target(
     )
     .with_entity(observed_entity)
 }
+
+pub fn on_ready_insert_mesh_picking(observer_entity: Entity, observed_entity: Entity) -> Observer {
+    Observer::new(
+        move |event: On<SceneInstanceReady>,
+              mut commands: Commands,
+              query: Query<(Option<&Children>, Has<Mesh3d>)>| {
+            let root_entity = event.entity;
+            let mut current = vec![root_entity];
+
+            // Search for all [`Mesh3d`] and mark them as pickable
+            loop {
+                if current.is_empty() {
+                    break;
+                }
+                for entity in std::mem::take(&mut current) {
+                    if let Ok((children_maybe, has_mesh)) = query.get(entity) {
+                        if has_mesh {
+                            // Will be automatically propagated up to the root entity by bevy's ECS
+                            commands.entity(entity).insert(Pickable::default());
+                        }
+                        if let Some(children) = children_maybe {
+                            current.extend(children);
+                        }
+                    }
+                }
+            }
+
+            // Remove this observer
+            commands.entity(observer_entity).despawn();
+        },
+    )
+    .with_entity(observed_entity)
+}

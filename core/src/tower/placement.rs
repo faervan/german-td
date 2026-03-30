@@ -63,81 +63,98 @@ fn spawn_placements(
             .observe(plot_change_hover_state::<Pointer<Out>, false>)
             .observe(
                 |event: On<Pointer<Click>>,
-                 mut focused_ui: ResMut<FocusedUi>,
                  query: Query<&Transform>,
                  mut commands: Commands,
-                 mut meshes: ResMut<Assets<Mesh>>,
-                 mut images: ResMut<Assets<Image>>,
-                 mut materials: ResMut<Assets<StandardMaterial>>,
-                 mut ring_materials: ResMut<Assets<TowerRingMaterial>>,
                  tower_lib: TowerLibrary,
                  tower_defs: Res<Assets<TowerDefinition>>| {
                     if let Ok(transform) = query.get(event.entity) {
-                        let ring_id = commands
-                            .spawn((
-                                Name::new("Tower selection ring"),
-                                Transform::from_translation(transform.translation + Vec3::Y * 6.),
-                                Billboarded,
-                                Mesh3d(meshes.add(Plane3d::new(Vec3::Z, Vec2::splat(7.)))),
-                                MeshMaterial3d(ring_materials.add(TowerRingMaterial {})),
-                                NotShadowCaster,
-                                NotShadowReceiver,
-                            ))
-                            .id();
-                        focused_ui.register_focus(ring_id);
-
-                        let mut actions = vec![];
-                        for (handle, def) in tower_lib.entries.values().filter_map(|handle| {
-                            tower_defs.get(handle).map(|def| (handle.clone(), def))
-                        }) {
-                            let mut entity_cmds = commands.spawn(ChildOf(ring_id));
-
-                            let position = transform.translation;
-                            let plot_id = event.entity;
-
-                            let on_click = move |_event: On<Pointer<Click>>,
-                                 mut commands: Commands,
-                                 mut tower_spawner: MessageWriter<SpawnTower>| {
-                                    commands.entity(ring_id).despawn();
-                                    tower_spawner.write(SpawnTower {
-                                        position,
-                                        definition: handle.clone(),
-                                        plot: plot_id,
-                                    });
-                                };
-
-                            let entity_id = entity_cmds.id();
-                            entity_cmds.insert((
-                                Observer::new(on_click).with_entity(entity_id),
-                                TowerRingAction { cost: def.cost },
-                            ));
-                            actions.push((entity_id, def.icon.clone()));
-                        }
-
-                        let cost_text_entity = setup_gold_cost_ui(
-                            &mut commands,
-                            &mut *meshes,
-                            &mut *materials,
-                            &mut *images,
-                            ring_id,
-                        );
-
-                        commands
-                            .entity(ring_id)
-                            .insert(TowerPlacementRing {
-                                actions,
-                                hovered_action_cost: None,
-                                cost_text_entity,
+                        let towers = tower_lib
+                            .entries
+                            .values()
+                            .filter_map(|handle| {
+                                tower_defs
+                                    .get(handle)
+                                    .map(|def| (handle.clone(), def.cost, def.icon.clone()))
                             })
-                            .observe(
-                                |event: On<Pointer<Click>>, mut focused_ui: ResMut<FocusedUi>| {
-                                    focused_ui.register_click(event.entity);
-                                },
-                            );
+                            .collect::<Vec<_>>();
+                        let position = transform.translation;
+                        let plot_id = event.entity;
+                        commands.run_system_cached_with(
+                            spawn_tower_ring,
+                            (
+                                Box::new(move |action_spawner, ring_id, actions| {
+                                    for (handle, cost, icon) in towers.clone().into_iter() {
+                                        let mut entity_cmds = action_spawner.spawn_empty();
+
+                                        let on_click = move |_event: On<Pointer<Click>>,
+                                                             mut commands: Commands,
+                                                             mut tower_spawner: MessageWriter<
+                                            SpawnTower,
+                                        >| {
+                                            commands.entity(plot_id).despawn();
+                                            commands.entity(ring_id).despawn();
+                                            tower_spawner.write(SpawnTower {
+                                                position,
+                                                definition: handle.clone(),
+                                            });
+                                        };
+
+                                        let entity_id = entity_cmds.id();
+                                        entity_cmds.insert((
+                                            Observer::new(on_click).with_entity(entity_id),
+                                            TowerRingAction { cost },
+                                        ));
+                                        actions.push((entity_id, icon));
+                                    }
+                                }),
+                                transform.translation,
+                            ),
+                        );
                     }
                 },
             );
     }
+}
+
+pub(super) fn spawn_tower_ring(
+    (add_actions, position): (
+        In<
+            Box<
+                dyn Fn(&mut ChildSpawnerCommands, Entity, &mut Vec<(Entity, Handle<Image>)>) + Send,
+            >,
+        >,
+        In<Vec3>,
+    ),
+    mut commands: Commands,
+    mut focused_ui: ResMut<FocusedUi>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut ring_materials: ResMut<Assets<TowerRingMaterial>>,
+) {
+    let mut ring_cmds = commands.spawn((
+        Name::new("Tower selection ring"),
+        // TODO! figure out a better way to ensure the ring is in front and can be accessible
+        // (especially is not blocked by the tower it was activated for)
+        Transform::from_translation(*position + Vec3::Y * 10. + Vec3::Z * 10.),
+        Billboarded,
+        Pickable::default(),
+        Mesh3d(meshes.add(Plane3d::new(Vec3::Z, Vec2::splat(7.)))),
+        MeshMaterial3d(ring_materials.add(TowerRingMaterial {})),
+        NotShadowCaster,
+        NotShadowReceiver,
+    ));
+    let ring_id = ring_cmds.id();
+    focused_ui.register_focus(ring_id);
+
+    let mut actions = vec![];
+    ring_cmds.with_children(|action_spawner| {
+        add_actions(action_spawner, ring_id, &mut actions);
+    });
+
+    ring_cmds.insert(TowerActionRing::new(actions)).observe(
+        |event: On<Pointer<Click>>, mut focused_ui: ResMut<FocusedUi>| {
+            focused_ui.register_click(event.entity);
+        },
+    );
 }
 
 fn plot_change_hover_state<EVENT: EntityEvent, const SET_HOVERED: bool>(
@@ -169,8 +186,7 @@ impl Material for TowerPlotMaterial {
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 #[component(on_add)]
-/// TODO! Maybe rename this, as it is used for the upgrade ring as well
-struct TowerPlacementRing {
+struct TowerActionRing {
     actions: Vec<(Entity, Handle<Image>)>,
     /// The amount of gold needed to perform the currently hovered action
     hovered_action_cost: Option<usize>,
@@ -178,10 +194,22 @@ struct TowerPlacementRing {
     cost_text_entity: Entity,
 }
 
-impl TowerPlacementRing {
+impl TowerActionRing {
+    fn new(actions: Vec<(Entity, Handle<Image>)>) -> Self {
+        Self {
+            actions,
+            hovered_action_cost: None,
+            cost_text_entity: Entity::PLACEHOLDER,
+        }
+    }
+
     fn on_add(mut world: DeferredWorld, hook: HookContext) {
         let mut meshes = world.resource_mut::<Assets<Mesh>>();
         let mesh = meshes.add(Plane3d::new(Vec3::Z, Vec2::splat(2.5)));
+
+        world
+            .commands()
+            .run_system_cached_with(setup_gold_cost_ui, hook.entity);
 
         let this = &mut world.get_mut::<Self>(hook.entity).unwrap();
         let action_len = this.actions.len() as f32;
@@ -204,6 +232,7 @@ impl TowerPlacementRing {
                     Transform::from_translation(offset),
                     Mesh3d(mesh.clone()),
                     MeshMaterial3d(material),
+                    Pickable::default(),
                     NotShadowCaster,
                 ))
                 .observe(action_icon_change_hover_state::<Pointer<Over>, true>)
@@ -213,7 +242,7 @@ impl TowerPlacementRing {
 }
 
 #[derive(Asset, TypePath, AsBindGroup, Clone, Default)]
-struct TowerRingMaterial {}
+pub(super) struct TowerRingMaterial {}
 
 impl Material for TowerRingMaterial {
     fn fragment_shader() -> bevy::shader::ShaderRef {
@@ -226,9 +255,11 @@ impl Material for TowerRingMaterial {
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
-struct TowerRingAction {
+/// This naming is a bit weird since there also is [`TowerActionRing`], but the difference should
+/// still be understandable I guess :)
+pub(super) struct TowerRingAction {
     /// Gold required for this action
-    cost: usize,
+    pub(super) cost: usize,
 }
 
 #[derive(Asset, TypePath, AsBindGroup, Clone, Default)]
@@ -260,7 +291,7 @@ fn action_icon_change_hover_state<EVENT: EntityEvent, const SET_HOVERED: bool>(
         &ChildOf,
         &TowerRingAction,
     )>,
-    mut ring_query: Query<&mut TowerPlacementRing>,
+    mut ring_query: Query<&mut TowerActionRing>,
     mut materials: ResMut<Assets<TowerRingActionMaterial>>,
 ) {
     if let Ok((transform, handle, parent, action)) = query.get(event.event_target())
@@ -316,12 +347,13 @@ fn blend_hover(
 
 /// see <https://bevy.org/examples/ui-user-interface/render-ui-to-texture/>
 fn setup_gold_cost_ui(
-    commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    materials: &mut Assets<StandardMaterial>,
-    images: &mut Assets<Image>,
-    ring_id: Entity,
-) -> Entity {
+    ring_id: In<Entity>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut images: ResMut<Assets<Image>>,
+    mut query: Query<&mut TowerActionRing>,
+) {
     let size = Extent3d {
         width: 512,
         height: 512,
@@ -396,17 +428,19 @@ fn setup_gold_cost_ui(
         MeshMaterial3d(material),
         Transform::from_xyz(0., 0., 0.1),
         Pickable::IGNORE,
-        ChildOf(ring_id),
+        ChildOf(*ring_id),
     ));
 
-    text_id
+    if let Ok(mut ring) = query.get_mut(*ring_id) {
+        ring.cost_text_entity = text_id;
+    }
 }
 
 #[cfg(not(feature = "editor"))]
 fn update_gold_cost_ui(
     gold: Res<Gold>,
     mut text_query: Query<(&mut Text, &mut TextColor)>,
-    query: Query<&TowerPlacementRing>,
+    query: Query<&TowerActionRing>,
 ) {
     for ring in query {
         if let Ok((mut text, mut color)) = text_query.get_mut(ring.cost_text_entity) {
