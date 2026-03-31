@@ -111,49 +111,54 @@ fn spawn_towers(
                         commands.run_system_cached_with(
                             spawn_tower_ring,
                             (
-                                Box::new(move |action_spawner, ring_id, actions| {
-                                    for (handle, cost, icon) in upgrades.clone().into_iter() {
-                                        let mut entity_cmds = action_spawner.spawn_empty();
+                                Box::new(
+                                    move |action_spawner, ring_id, actions_top, actions_bottom| {
+                                        for (handle, cost, icon) in upgrades.clone().into_iter() {
+                                            let mut entity_cmds = action_spawner.spawn_empty();
 
-                                        let on_click = move |_event: On<Pointer<Click>>,
-                                                             mut commands: Commands,
-                                                             mut tower_spawner: MessageWriter<
-                                            SpawnTower,
-                                        >| {
-                                            commands.entity(ring_id).despawn();
-                                            commands.entity(tower_id).despawn();
-                                            tower_spawner.write(SpawnTower {
-                                                position,
-                                                definition: handle.clone(),
-                                            });
-                                        };
+                                            let on_click =
+                                                move |_event: On<Pointer<Click>>,
+                                                      mut commands: Commands,
+                                                      mut tower_spawner: MessageWriter<
+                                                    SpawnTower,
+                                                >| {
+                                                    commands.entity(ring_id).despawn();
+                                                    commands.entity(tower_id).despawn();
+                                                    tower_spawner.write(SpawnTower {
+                                                        position,
+                                                        definition: handle.clone(),
+                                                    });
+                                                };
+
+                                            let entity_id = entity_cmds.id();
+                                            entity_cmds.insert((
+                                                Observer::new(on_click).with_entity(entity_id),
+                                                TowerRingAction { cost },
+                                            ));
+                                            actions_top.push((entity_id, icon));
+                                        }
+
+                                        let mut entity_cmds = action_spawner.spawn_empty();
+                                        let on_click =
+                                            move |_event: On<Pointer<Click>>,
+                                                  mut commands: Commands,
+                                                  mut placement_spawner: MessageWriter<
+                                                SpawnTowerPlacement,
+                                            >| {
+                                                commands.entity(ring_id).despawn();
+                                                commands.entity(tower_id).despawn();
+                                                placement_spawner
+                                                    .write(SpawnTowerPlacement { position });
+                                            };
 
                                         let entity_id = entity_cmds.id();
                                         entity_cmds.insert((
                                             Observer::new(on_click).with_entity(entity_id),
-                                            TowerRingAction { cost },
+                                            TowerRingAction { cost: 0 },
                                         ));
-                                        actions.push((entity_id, icon));
-                                    }
-
-                                    let mut entity_cmds = action_spawner.spawn_empty();
-                                    let on_click = move |_event: On<Pointer<Click>>,
-                                                         mut commands: Commands,
-                                                         mut placement_spawner: MessageWriter<
-                                        SpawnTowerPlacement,
-                                    >| {
-                                        commands.entity(ring_id).despawn();
-                                        commands.entity(tower_id).despawn();
-                                        placement_spawner.write(SpawnTowerPlacement { position });
-                                    };
-
-                                    let entity_id = entity_cmds.id();
-                                    entity_cmds.insert((
-                                        Observer::new(on_click).with_entity(entity_id),
-                                        TowerRingAction { cost: 0 },
-                                    ));
-                                    actions.push((entity_id, delete_icon.clone()));
-                                }),
+                                        actions_bottom.push((entity_id, delete_icon.clone()));
+                                    },
+                                ),
                                 transform.translation,
                             ),
                         );

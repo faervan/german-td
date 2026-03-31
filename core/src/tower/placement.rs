@@ -83,31 +83,34 @@ fn spawn_placements(
                         commands.run_system_cached_with(
                             spawn_tower_ring,
                             (
-                                Box::new(move |action_spawner, ring_id, actions| {
-                                    for (handle, cost, icon) in towers.clone().into_iter() {
-                                        let mut entity_cmds = action_spawner.spawn_empty();
+                                Box::new(
+                                    move |action_spawner, ring_id, actions_top, _actions_bottom| {
+                                        for (handle, cost, icon) in towers.clone().into_iter() {
+                                            let mut entity_cmds = action_spawner.spawn_empty();
 
-                                        let on_click = move |_event: On<Pointer<Click>>,
-                                                             mut commands: Commands,
-                                                             mut tower_spawner: MessageWriter<
-                                            SpawnTower,
-                                        >| {
-                                            commands.entity(plot_id).despawn();
-                                            commands.entity(ring_id).despawn();
-                                            tower_spawner.write(SpawnTower {
-                                                position,
-                                                definition: handle.clone(),
-                                            });
-                                        };
+                                            let on_click =
+                                                move |_event: On<Pointer<Click>>,
+                                                      mut commands: Commands,
+                                                      mut tower_spawner: MessageWriter<
+                                                    SpawnTower,
+                                                >| {
+                                                    commands.entity(plot_id).despawn();
+                                                    commands.entity(ring_id).despawn();
+                                                    tower_spawner.write(SpawnTower {
+                                                        position,
+                                                        definition: handle.clone(),
+                                                    });
+                                                };
 
-                                        let entity_id = entity_cmds.id();
-                                        entity_cmds.insert((
-                                            Observer::new(on_click).with_entity(entity_id),
-                                            TowerRingAction { cost },
-                                        ));
-                                        actions.push((entity_id, icon));
-                                    }
-                                }),
+                                            let entity_id = entity_cmds.id();
+                                            entity_cmds.insert((
+                                                Observer::new(on_click).with_entity(entity_id),
+                                                TowerRingAction { cost },
+                                            ));
+                                            actions_top.push((entity_id, icon));
+                                        }
+                                    },
+                                ),
                                 transform.translation,
                             ),
                         );
@@ -121,7 +124,12 @@ pub(super) fn spawn_tower_ring(
     (add_actions, position): (
         In<
             Box<
-                dyn Fn(&mut ChildSpawnerCommands, Entity, &mut Vec<(Entity, Handle<Image>)>) + Send,
+                dyn Fn(
+                        &mut ChildSpawnerCommands,
+                        Entity,
+                        &mut Vec<(Entity, Handle<Image>)>,
+                        &mut Vec<(Entity, Handle<Image>)>,
+                    ) + Send,
             >,
         >,
         In<Vec3>,
@@ -146,16 +154,24 @@ pub(super) fn spawn_tower_ring(
     let ring_id = ring_cmds.id();
     focused_ui.register_focus(ring_id);
 
-    let mut actions = vec![];
+    let mut actions_top = vec![];
+    let mut actions_bottom = vec![];
     ring_cmds.with_children(|action_spawner| {
-        add_actions(action_spawner, ring_id, &mut actions);
+        add_actions(
+            action_spawner,
+            ring_id,
+            &mut actions_top,
+            &mut actions_bottom,
+        );
     });
 
-    ring_cmds.insert(TowerActionRing::new(actions)).observe(
-        |event: On<Pointer<Click>>, mut focused_ui: ResMut<FocusedUi>| {
-            focused_ui.register_click(event.entity);
-        },
-    );
+    ring_cmds
+        .insert(TowerActionRing::new(actions_top, actions_bottom))
+        .observe(
+            |event: On<Pointer<Click>>, mut focused_ui: ResMut<FocusedUi>| {
+                focused_ui.register_click(event.entity);
+            },
+        );
 }
 
 fn plot_change_hover_state<EVENT: EntityEvent, const SET_HOVERED: bool>(
@@ -188,7 +204,8 @@ impl Material for TowerPlotMaterial {
 #[reflect(Component)]
 #[component(on_add)]
 struct TowerActionRing {
-    actions: Vec<(Entity, Handle<Image>)>,
+    actions_top: Vec<(Entity, Handle<Image>)>,
+    actions_bottom: Vec<(Entity, Handle<Image>)>,
     /// The amount of gold needed to perform the currently hovered action
     hovered_action_cost: Option<usize>,
     /// The [`Entity`] holding the [`Text`] node to display the gold cost
@@ -196,9 +213,15 @@ struct TowerActionRing {
 }
 
 impl TowerActionRing {
-    fn new(actions: Vec<(Entity, Handle<Image>)>) -> Self {
+    const ACTION_ANGLE_GAP: f32 = TAU / 6.;
+
+    fn new(
+        actions_top: Vec<(Entity, Handle<Image>)>,
+        actions_bottom: Vec<(Entity, Handle<Image>)>,
+    ) -> Self {
         Self {
-            actions,
+            actions_top,
+            actions_bottom,
             hovered_action_cost: None,
             cost_text_entity: Entity::PLACEHOLDER,
         }
@@ -213,16 +236,32 @@ impl TowerActionRing {
             .run_system_cached_with(setup_gold_cost_ui, hook.entity);
 
         let this = &mut world.get_mut::<Self>(hook.entity).unwrap();
-        let action_len = this.actions.len() as f32;
+        let actions_top_len = this.actions_top.len() as f32;
+        let actions_bottom_len = this.actions_bottom.len() as f32;
 
-        for (index, (entity, image)) in std::mem::take(&mut this.actions).into_iter().enumerate() {
+        for (index, (entity, image, is_at_top)) in std::mem::take(&mut this.actions_top)
+            .into_iter()
+            .map(|(a, b)| (a, b, true))
+            .enumerate()
+            .chain(
+                std::mem::take(&mut this.actions_bottom)
+                    .into_iter()
+                    .map(|(a, b)| (a, b, false))
+                    .enumerate(),
+            )
+        {
             let mut materials = world.resource_mut::<Assets<TowerRingActionMaterial>>();
             let material = materials.add(TowerRingActionMaterial {
                 icon: image,
                 ..Default::default()
             });
 
-            let angle = TAU / action_len * index as f32;
+            let angle = match is_at_top {
+                true => Self::ACTION_ANGLE_GAP * (0.5 + index as f32 - actions_top_len / 2.),
+                false => {
+                    PI + Self::ACTION_ANGLE_GAP * (0.5 + index as f32 - actions_bottom_len / 2.)
+                }
+            };
             let offset = (Vec3::Y * 6.5 + Vec3::Z * 0.01).rotate_z(angle);
 
             world
