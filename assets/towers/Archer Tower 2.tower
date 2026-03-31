@@ -8,4 +8,5 @@
     range: 45.0,
     cost: 30,
     upgrades: [],
+	starter_tower: false,
 )

@@ -72,9 +72,10 @@ fn spawn_placements(
                             .entries
                             .values()
                             .filter_map(|handle| {
-                                tower_defs
-                                    .get(handle)
-                                    .map(|def| (handle.clone(), def.cost, def.icon.clone()))
+                                tower_defs.get(handle).and_then(|def| {
+                                    def.starter_tower
+                                        .then(|| (handle.clone(), def.cost, def.icon.clone()))
+                                })
                             })
                             .collect::<Vec<_>>();
                         towers.sort_by(|(_, x, _), (_, y, _)| y.cmp(x));

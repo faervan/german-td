@@ -26,6 +26,7 @@ pub struct TowerAsset {
     pub range: f32,
     pub cost: usize,
     pub upgrades: Vec<String>,
+    pub starter_tower: bool,
 }
 
 #[derive(Asset, Reflect, Default, Debug)]
@@ -42,6 +43,9 @@ pub struct TowerDefinition {
     pub range: f32,
     pub cost: usize,
     pub upgrades: Vec<Handle<TowerDefinition>>,
+    /// Marks this tower as buildable directly on an empty plot. We probably always want this to be
+    /// `false` for upgrade towers.
+    pub starter_tower: bool,
     #[cfg(feature = "editor")]
     #[reflect(ignore)]
     pub asset: TowerAsset,
@@ -86,6 +90,7 @@ impl RonAsset for TowerAsset {
                 .into_iter()
                 .map(|name| context.load(TowerAsset::path(&name)))
                 .collect(),
+            starter_tower: self.starter_tower,
         }
     }
 }

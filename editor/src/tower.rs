@@ -109,6 +109,11 @@ fn tower_edit_ui(world: &mut World, ui: &mut Ui, handle: AssetId<TowerDefinition
         egui::DragValue::new(&mut def.cost).ui(ui);
     });
 
+    ui.horizontal(|ui| {
+        ui.label("starter_tower:");
+        ui.checkbox(&mut def.starter_tower, "buildable on plot");
+    });
+
     let mut create_upgrade = false;
     let len = def.upgrades.len();
     egui::Frame::new()
