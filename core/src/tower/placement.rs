@@ -68,7 +68,7 @@ fn spawn_placements(
                  tower_lib: TowerLibrary,
                  tower_defs: Res<Assets<TowerDefinition>>| {
                     if let Ok(transform) = query.get(event.entity) {
-                        let towers = tower_lib
+                        let mut towers = tower_lib
                             .entries
                             .values()
                             .filter_map(|handle| {
@@ -77,6 +77,7 @@ fn spawn_placements(
                                     .map(|def| (handle.clone(), def.cost, def.icon.clone()))
                             })
                             .collect::<Vec<_>>();
+                        towers.sort_by(|(_, x, _), (_, y, _)| y.cmp(x));
                         let position = transform.translation;
                         let plot_id = event.entity;
                         commands.run_system_cached_with(

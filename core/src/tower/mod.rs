@@ -98,15 +98,16 @@ fn spawn_towers(
                         let Some(def) = tower_defs.get(&tower.definition) else {
                             return;
                         };
-                        let upgrades: Vec<(Handle<TowerDefinition>, usize, Handle<Image>)> = def
-                            .upgrades
-                            .iter()
-                            .filter_map(|handle| {
-                                tower_defs
-                                    .get(handle)
-                                    .map(|def| (handle.clone(), def.cost, def.icon.clone()))
-                            })
-                            .collect();
+                        let mut upgrades: Vec<(Handle<TowerDefinition>, usize, Handle<Image>)> =
+                            def.upgrades
+                                .iter()
+                                .filter_map(|handle| {
+                                    tower_defs
+                                        .get(handle)
+                                        .map(|def| (handle.clone(), def.cost, def.icon.clone()))
+                                })
+                                .collect();
+                        upgrades.sort_by(|(_, x, _), (_, y, _)| y.cmp(x));
                         commands.run_system_cached_with(
                             spawn_tower_ring,
                             (
