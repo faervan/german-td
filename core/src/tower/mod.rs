@@ -40,6 +40,9 @@ pub struct Tower {
 pub struct SpawnTower {
     pub position: Vec3,
     pub definition: Handle<TowerDefinition>,
+    /// [`Entity`]'s that should be despawned if there is enough [`Gold`] to actually spawn the
+    /// [`Tower`].
+    pub despawn_entities: Vec<Entity>,
 }
 
 fn spawn_towers(
@@ -62,6 +65,10 @@ fn spawn_towers(
             }
 
             gold.0 -= cost;
+        }
+
+        for entity in &spawn.despawn_entities {
+            commands.entity(*entity).despawn();
         }
 
         let mut attack_timer = Timer::new(def.attack_duration, TimerMode::Repeating);
@@ -118,15 +125,13 @@ fn spawn_towers(
 
                                             let on_click =
                                                 move |_event: On<Pointer<Click>>,
-                                                      mut commands: Commands,
                                                       mut tower_spawner: MessageWriter<
                                                     SpawnTower,
                                                 >| {
-                                                    commands.entity(ring_id).despawn();
-                                                    commands.entity(tower_id).despawn();
                                                     tower_spawner.write(SpawnTower {
                                                         position,
                                                         definition: handle.clone(),
+                                                        despawn_entities: vec![ring_id, tower_id],
                                                     });
                                                 };
 
