@@ -1,4 +1,4 @@
-#[cfg(feature = "dev")]
+#[cfg(all(feature = "dev", not(feature = "editor")))]
 use bevy_egui::EguiContext;
 
 use crate::prelude::*;
@@ -41,9 +41,12 @@ fn on_click(_event: On<Pointer<Click>>, mut focused_ui: ResMut<FocusedUi>) {
 fn update_focused(
     mut focused_ui: ResMut<FocusedUi>,
     mut commands: Commands,
-    #[cfg(feature = "dev")] mut egui_context: Single<&mut EguiContext, With<PrimaryEguiContext>>,
+    #[cfg(all(feature = "dev", not(feature = "editor")))] mut egui_context: Single<
+        &mut EguiContext,
+        With<PrimaryEguiContext>,
+    >,
 ) {
-    #[cfg(feature = "dev")]
+    #[cfg(all(feature = "dev", not(feature = "editor")))]
     if egui_context.get_mut().is_pointer_over_area() {
         focused_ui.clicked = HashSet::new();
         focused_ui.received_click = false;

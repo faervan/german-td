@@ -50,8 +50,11 @@ fn spawn_menu(world: &mut World) {
         .show(egui_context.get_mut(), |ui| {
             ui.vertical(|ui| {
                 spawn_enemy(world, ui);
-                spawn_tower(world, ui);
+                ui.separator();
+                spawn_towers(world, ui);
+                ui.separator();
                 spawn_waypoint(world, ui);
+                ui.separator();
                 spawn_plot(world, ui);
             });
         });
@@ -76,21 +79,31 @@ fn spawn_enemy(world: &mut World, ui: &mut Ui) {
     }
 }
 
-fn spawn_tower(world: &mut World, ui: &mut Ui) {
-    if ui.button("Spawn Tower").clicked() {
-        let definition =
-            world.resource::<AssetLibrary<TowerDefinition>>().entries["Bow Turret"].clone();
-        let position = world
-            .query_filtered::<&Transform, With<EditorCursor>>()
-            .single(world)
-            .unwrap()
-            .translation;
-        world.write_message(SpawnTower {
-            position,
-            definition,
-        });
+fn spawn_towers(world: &mut World, ui: &mut Ui) {
+    let mut defs = world.resource_mut::<Assets<TowerDefinition>>();
+    let towers = defs
+        .iter()
+        .filter(|(_id, def)| def.asset.starter_tower)
+        .map(|(id, def)| (id, def.asset.name.clone()))
+        .collect::<Vec<_>>()
+        .into_iter()
+        .filter_map(|(id, name)| defs.get_strong_handle(id).map(|handle| (handle, name)))
+        .collect::<Vec<_>>();
+    for (definition, name) in towers {
+        if ui.button(format!("Spawn {name}")).clicked() {
+            let position = world
+                .query_filtered::<&Transform, With<EditorCursor>>()
+                .single(world)
+                .unwrap()
+                .translation;
+            world.write_message(SpawnTower {
+                position,
+                definition,
+                despawn_entities: vec![],
+            });
 
-        close_menu(world);
+            close_menu(world);
+        }
     }
 }
 
