@@ -10,5 +10,5 @@
     upgrades: [
         "Archer Tower 2",
     ],
-	starter_tower: true,
+    starter_tower: true,
 )
