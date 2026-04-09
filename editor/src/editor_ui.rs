@@ -104,7 +104,12 @@ impl UiState {
         let [_game, sidebar_menu] = tree.split_left(
             NodeIndex::root(),
             0.3,
-            vec![EguiWindow::SidebarMenu, EguiWindow::WorldInspector],
+            vec![
+                EguiWindow::SidebarMenu,
+                EguiWindow::Towers,
+                EguiWindow::Enemies,
+                EguiWindow::WorldInspector,
+            ],
         );
         let [_sidebar_menu, _options] =
             tree.split_below(sidebar_menu, 0.9, vec![EguiWindow::Options]);
@@ -132,6 +137,8 @@ impl UiState {
 enum EguiWindow {
     GameView,
     SidebarMenu,
+    Towers,
+    Enemies,
     WorldInspector,
     Options,
 }
@@ -172,6 +179,10 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                     ui.add_space(50.);
                 });
             }
+            EguiWindow::Towers => {
+                crate::tower::tower_tab_ui(self.world, ui);
+            }
+            EguiWindow::Enemies => {}
             EguiWindow::WorldInspector => {
                 ui_for_world(self.world, ui);
             }

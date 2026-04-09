@@ -15,8 +15,8 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
     }
 }
 
-#[derive(TypePath, Debug, Serialize, Deserialize)]
-struct TowerAsset {
+#[derive(TypePath, Default, Debug, Clone, Serialize, Deserialize)]
+pub struct TowerAsset {
     pub name: String,
     pub gltf: String,
     pub icon: String,
@@ -25,9 +25,11 @@ struct TowerAsset {
     pub attack_duration_ms: u64,
     pub range: f32,
     pub cost: usize,
+    pub upgrades: Vec<String>,
+    pub starter_tower: bool,
 }
 
-#[derive(Asset, Reflect, Debug)]
+#[derive(Asset, Reflect, Default, Debug)]
 #[reflect(Asset)]
 pub struct TowerDefinition {
     pub name: String,
@@ -40,6 +42,29 @@ pub struct TowerDefinition {
     pub attack_duration: Duration,
     pub range: f32,
     pub cost: usize,
+    pub upgrades: Vec<Handle<TowerDefinition>>,
+    /// Marks this tower as buildable directly on an empty plot. We probably always want this to be
+    /// `false` for upgrade towers.
+    pub starter_tower: bool,
+    #[cfg(feature = "editor")]
+    #[reflect(ignore)]
+    pub asset: TowerAsset,
+}
+
+#[cfg(feature = "editor")]
+impl TowerDefinition {
+    /// TODO! Maybe just make [`TowerAsset`] public for the editor crate instead
+    pub fn path(name: &str) -> PathBuf {
+        TowerAsset::path(name)
+    }
+
+    /// Returns (name, serialized asset) on success
+    pub fn serialize(&mut self) -> Result<(String, String), ron::Error> {
+        use ron::ser::PrettyConfig;
+
+        ron::ser::to_string_pretty(&self.asset, PrettyConfig::default())
+            .map(|s| (self.asset.name.clone(), s))
+    }
 }
 
 impl RonAsset for TowerAsset {
@@ -49,6 +74,8 @@ impl RonAsset for TowerAsset {
 
     async fn load_dependencies(self, context: &mut bevy::asset::LoadContext<'_>) -> Self::Asset {
         TowerDefinition {
+            #[cfg(feature = "editor")]
+            asset: self.clone(),
             name: self.name,
             gltf: context.load(self.gltf),
             scene: Default::default(),
@@ -58,6 +85,12 @@ impl RonAsset for TowerAsset {
             attack_duration: Duration::from_millis(self.attack_duration_ms),
             range: self.range,
             cost: self.cost,
+            upgrades: self
+                .upgrades
+                .into_iter()
+                .map(|name| context.load(TowerAsset::path(&name)))
+                .collect(),
+            starter_tower: self.starter_tower,
         }
     }
 }

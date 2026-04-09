@@ -1,4 +1,7 @@
-use crate::{prelude::*, utils::on_ready_insert_animation_target};
+use crate::{
+    prelude::*,
+    utils::{on_ready_insert_animation_target, on_ready_insert_mesh_picking},
+};
 
 mod placement;
 pub use placement::*;
@@ -30,13 +33,16 @@ pub struct Tower {
     attack_timer: Timer,
     projectile: Handle<ProjectileDefinition>,
     damage_factor: f32,
+    definition: Handle<TowerDefinition>,
 }
 
 #[derive(Message, Debug)]
 pub struct SpawnTower {
     pub position: Vec3,
     pub definition: Handle<TowerDefinition>,
-    pub plot: Entity,
+    /// [`Entity`]'s that should be despawned if there is enough [`Gold`] to actually spawn the
+    /// [`Tower`].
+    pub despawn_entities: Vec<Entity>,
 }
 
 fn spawn_towers(
@@ -61,6 +67,10 @@ fn spawn_towers(
             gold.0 -= cost;
         }
 
+        for entity in &spawn.despawn_entities {
+            commands.entity(*entity).despawn();
+        }
+
         let mut attack_timer = Timer::new(def.attack_duration, TimerMode::Repeating);
         attack_timer.finish();
         commands
@@ -74,6 +84,7 @@ fn spawn_towers(
                     attack_timer,
                     projectile: def.projectile.clone(),
                     damage_factor: def.damage_factor,
+                    definition: spawn.definition.clone(),
                 },
                 RigidBody::Static,
                 Collider::sphere(def.range),
@@ -81,9 +92,86 @@ fn spawn_towers(
                 Sensor,
                 CollisionEventsEnabled,
             ))
-            .observe(on_ready_insert_animation_target);
+            .observe(
+                |event: On<Pointer<Click>>,
+                 query: Query<(&Transform, &Tower)>,
+                 mut commands: Commands,
+                 tower_defs: Res<Assets<TowerDefinition>>,
+                 icons: Res<GenericIcons>| {
+                    if let Ok((transform, tower)) = query.get(event.entity) {
+                        let tower_id = event.entity;
+                        let delete_icon = icons.delete.clone();
+                        let position = transform.translation;
+                        let Some(def) = tower_defs.get(&tower.definition) else {
+                            return;
+                        };
+                        let mut upgrades: Vec<(Handle<TowerDefinition>, usize, Handle<Image>)> =
+                            def.upgrades
+                                .iter()
+                                .filter_map(|handle| {
+                                    tower_defs
+                                        .get(handle)
+                                        .map(|def| (handle.clone(), def.cost, def.icon.clone()))
+                                })
+                                .collect();
+                        upgrades.sort_by(|(_, x, _), (_, y, _)| y.cmp(x));
+                        commands.run_system_cached_with(
+                            spawn_tower_ring,
+                            (
+                                Box::new(
+                                    move |action_spawner, ring_id, actions_top, actions_bottom| {
+                                        for (handle, cost, icon) in upgrades.clone().into_iter() {
+                                            let mut entity_cmds = action_spawner.spawn_empty();
 
-        commands.entity(spawn.plot).try_despawn();
+                                            let on_click =
+                                                move |_event: On<Pointer<Click>>,
+                                                      mut tower_spawner: MessageWriter<
+                                                    SpawnTower,
+                                                >| {
+                                                    tower_spawner.write(SpawnTower {
+                                                        position,
+                                                        definition: handle.clone(),
+                                                        despawn_entities: vec![ring_id, tower_id],
+                                                    });
+                                                };
+
+                                            let entity_id = entity_cmds.id();
+                                            entity_cmds.insert((
+                                                Observer::new(on_click).with_entity(entity_id),
+                                                TowerRingAction { cost },
+                                            ));
+                                            actions_top.push((entity_id, icon));
+                                        }
+
+                                        let mut entity_cmds = action_spawner.spawn_empty();
+                                        let on_click =
+                                            move |_event: On<Pointer<Click>>,
+                                                  mut commands: Commands,
+                                                  mut placement_spawner: MessageWriter<
+                                                SpawnTowerPlacement,
+                                            >| {
+                                                commands.entity(ring_id).despawn();
+                                                commands.entity(tower_id).despawn();
+                                                placement_spawner
+                                                    .write(SpawnTowerPlacement { position });
+                                            };
+
+                                        let entity_id = entity_cmds.id();
+                                        entity_cmds.insert((
+                                            Observer::new(on_click).with_entity(entity_id),
+                                            TowerRingAction { cost: 0 },
+                                        ));
+                                        actions_bottom.push((entity_id, delete_icon.clone()));
+                                    },
+                                ),
+                                transform.translation,
+                            ),
+                        );
+                    }
+                },
+            )
+            .observe(on_ready_insert_animation_target)
+            .observe(on_ready_insert_mesh_picking);
     }
 }
 
@@ -137,6 +225,7 @@ fn update_tower_targets(
 fn pick_tower_target(towers: Query<&mut Tower>) {
     for mut tower in towers {
         if tower.target.is_none() {
+            // TODO!
             // Not very sophisticated. Also this may not always be the enemy that has been in range
             // the longest, because we `swap_remove` enemies that go out-of-range, thus destroying
             // the order.

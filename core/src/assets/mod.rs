@@ -17,6 +17,7 @@ pub mod projectile;
 pub mod towers;
 
 pub mod audio;
+pub mod generic_icons;
 
 pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin {
     move |app: &mut App| {
@@ -28,6 +29,7 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
             towers::plugin(loading_state),
             projectile::plugin(loading_state),
             audio::plugin,
+            generic_icons::plugin,
         ));
     }
 }

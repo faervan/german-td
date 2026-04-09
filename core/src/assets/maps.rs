@@ -62,6 +62,11 @@ impl MapDefinition {
         self.asset.waves
     }
 
+    /// TODO! Maybe just make [`MapAsset`] public for the editor crate instead
+    pub fn path(name: &str) -> PathBuf {
+        MapAsset::path(name)
+    }
+
     /// Returns (name, serialized asset) on success
     pub fn serialize(
         &mut self,

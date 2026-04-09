@@ -1,0 +1,14 @@
+(
+    name: "Archer Tower",
+    gltf: "models/towers/ArcherTower.glb",
+    icon: "icons/towers/ArcherTower.png",
+    projectile: "Arrow",
+    damage_factor: 5.0,
+    attack_duration_ms: 1200,
+    range: 40.0,
+    cost: 15,
+    upgrades: [
+        "Archer Tower 2",
+    ],
+    starter_tower: true,
+)
