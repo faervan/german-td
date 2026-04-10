@@ -51,11 +51,6 @@ pub(super) fn plugin(app: &mut App) {
         Update,
         toggle_physics_gizmos.run_if(input_just_pressed(TOGGLE_PHYSICS_GIZMOS_KEY)),
     );
-
-    app.add_systems(
-        Update,
-        spawn_wave.run_if(input_just_pressed(SPAWN_WAVE_KEY)),
-    );
 }
 
 const TOGGLE_INSPECTOR_KEY: KeyCode = KeyCode::F1;
@@ -78,13 +73,5 @@ const TOGGLE_PHYSICS_GIZMOS_KEY: KeyCode = KeyCode::F4;
 fn toggle_physics_gizmos(mut gizmo: ResMut<GizmoConfigStore>) {
     if let Some((config, _)) = gizmo.get_config_mut_dyn(&TypeId::of::<PhysicsGizmos>()) {
         config.enabled = !config.enabled;
-    }
-}
-
-const SPAWN_WAVE_KEY: KeyCode = KeyCode::KeyK;
-
-fn spawn_wave(mut wave: ResMut<WaveSpawning>) {
-    if let Some(timer) = wave.cooldown.as_mut() {
-        timer.finish();
     }
 }
