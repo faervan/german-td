@@ -13,7 +13,7 @@
 - [ ] Add enemy health HUD
 - [ ] Add tower cooldown HUD
 
-## Enemies Assets
+## Enemy Assets
 - [ ] Add armored enemy
 
 ## Tower Assets
