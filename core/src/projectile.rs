@@ -20,6 +20,7 @@ pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
 pub struct Projectile {
     target: Entity,
     damage: f32,
+    damage_type: DamageType,
 }
 
 #[derive(Message, Debug)]
@@ -29,6 +30,7 @@ pub struct SpawnProjectile {
     pub definition: Handle<ProjectileDefinition>,
     /// A multiplier to the projectiles base damage depending on the tower that shot it
     pub damage_factor: f32,
+    pub damage_type: DamageType,
 }
 
 fn spawn_projectile(
@@ -46,6 +48,7 @@ fn spawn_projectile(
             Projectile {
                 target: spawn.target,
                 damage: def.damage * spawn.damage_factor,
+                damage_type: spawn.damage_type,
             },
             // Physics
             RigidBody::Kinematic,
@@ -59,40 +62,75 @@ fn spawn_projectile(
 // TODO: split out despawn to get rid of commands
 fn move_projectile(
     mut commands: Commands,
-    projectile_transforms: Query<(Entity, &mut Transform, &mut LinearVelocity, &Projectile)>,
-    mut targets: Query<(Entity, &Transform, &mut Health, &Enemy), Without<Projectile>>,
+    projectile_transforms: Query<(
+        Entity,
+        &Projectile,
+        &GlobalTransform,
+        &mut Transform,
+        &mut LinearVelocity,
+    )>,
+    mut targets: Query<(Entity, &Enemy, &GlobalTransform, &mut Health), Without<Projectile>>,
     time: Res<Time>,
     audio_handles: Res<GameSoundHandles>,
     mut enemy_killed: MessageWriter<EnemyKilled>,
+    spatial_query: SpatialQuery,
 ) {
-    for (entity, mut projectile_transform, mut projectile_velocity, projectile) in
-        projectile_transforms
+    for (
+        entity,
+        projectile,
+        projectile_global_transform,
+        mut projectile_transform,
+        mut projectile_velocity,
+    ) in projectile_transforms
     {
         let mut despawn = false;
+        let mut entities_to_damage = vec![];
 
-        if let Ok((target_entity, target_transform, mut target_health, enemy)) =
-            targets.get_mut(projectile.target)
-        {
-            let direction = target_transform.translation - projectile_transform.translation;
+        if let Ok((target_entity, _, target_transform, _)) = targets.get(projectile.target) {
+            let direction =
+                target_transform.translation() - projectile_global_transform.translation();
 
-            projectile_transform.look_at(target_transform.translation, Vec3::Y);
+            projectile_transform.look_at(target_transform.translation(), Vec3::Y);
             projectile_velocity.0 = direction.normalize() * 30.0;
 
             if direction.length() < 1.0 {
                 despawn = true;
-                // If the health is negative, this enemy was already killed by another projectile
-                // and is already queued to be despawned
-                if !target_health.0.is_sign_negative() {
-                    target_health.0 -= projectile.damage;
-                    if target_health.0.is_sign_negative() {
-                        commands.entity(target_entity).despawn();
-                        commands.spawn(sound_effect(audio_handles.enemy_death_from_time(&time)));
-                        enemy_killed.write(EnemyKilled(enemy.definition.clone()));
+
+                match projectile.damage_type {
+                    DamageType::Single => entities_to_damage.push(target_entity),
+                    DamageType::Area { radius } => {
+                        let shape = Collider::cylinder(radius, 100.0); // TODO: height?
+                        let shape_position = target_transform.translation();
+                        let shape_rotation = Quat::default();
+
+                        let mut hit_entities = spatial_query.shape_intersections(
+                            &shape,
+                            shape_position,
+                            shape_rotation,
+                            &SpatialQueryFilter::default(),
+                        ); // TODO: filter
+                        info!("Hit entities: {:?}", hit_entities);
+                        entities_to_damage.append(&mut hit_entities);
                     }
                 }
             }
         } else {
             despawn = true;
+        }
+
+        for entity in entities_to_damage {
+            if let Ok((_, enemy, _, mut health)) = targets.get_mut(entity) {
+                // If the health is negative, this enemy was already killed by another projectile
+                // and is already queued to be despawned
+                if !health.0.is_sign_negative() {
+                    health.0 -= projectile.damage;
+                    if health.0.is_sign_negative() {
+                        commands.entity(entity).despawn();
+                        commands.spawn(sound_effect(audio_handles.enemy_death_from_time(&time)));
+                        enemy_killed.write(EnemyKilled(enemy.definition.clone()));
+                    }
+                }
+            }
         }
 
         if despawn {

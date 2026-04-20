@@ -15,6 +15,15 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
     }
 }
 
+#[derive(Debug, Default, Clone, Copy, Reflect, Serialize, Deserialize)]
+pub enum DamageType {
+    #[default]
+    Single,
+    Area {
+        radius: f32,
+    },
+}
+
 #[derive(TypePath, Default, Debug, Clone, Serialize, Deserialize)]
 pub struct TowerAsset {
     pub name: String,
@@ -25,6 +34,7 @@ pub struct TowerAsset {
     pub attack_duration_ms: u64,
     pub range: f32,
     pub cost: usize,
+    pub damage_type: DamageType,
     pub upgrades: Vec<String>,
     pub starter_tower: bool,
 }
@@ -42,6 +52,7 @@ pub struct TowerDefinition {
     pub attack_duration: Duration,
     pub range: f32,
     pub cost: usize,
+    pub damage_type: DamageType,
     pub upgrades: Vec<Handle<TowerDefinition>>,
     /// Marks this tower as buildable directly on an empty plot. We probably always want this to be
     /// `false` for upgrade towers.
@@ -85,6 +96,7 @@ impl RonAsset for TowerAsset {
             attack_duration: Duration::from_millis(self.attack_duration_ms),
             range: self.range,
             cost: self.cost,
+            damage_type: self.damage_type,
             upgrades: self
                 .upgrades
                 .into_iter()
