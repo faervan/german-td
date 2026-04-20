@@ -7,10 +7,12 @@ use prelude::*;
 mod camera;
 mod cursor;
 mod editor_ui;
+mod enemy;
 mod focus;
 mod map;
 mod preview;
 mod spawn_menu;
+mod tower;
 
 fn main() {
     let mut app = App::new();
@@ -30,6 +32,7 @@ fn main() {
         camera::plugin,
         cursor::plugin,
         editor_ui::plugin,
+        tower::plugin,
         focus::plugin,
         map::plugin,
         preview::plugin,
@@ -37,6 +40,37 @@ fn main() {
     ));
 
     app.init_state::<State>();
+
+    #[derive(TypePath)]
+    struct GhostLoader;
+    #[derive(Asset, TypePath)]
+    struct GhostAsset;
+    impl bevy::asset::AssetLoader for GhostLoader {
+        type Asset = GhostAsset;
+        type Settings = ();
+        type Error = String;
+        fn load(
+            &self,
+            reader: &mut dyn bevy::asset::io::Reader,
+            _settings: &Self::Settings,
+            _load_context: &mut bevy::asset::LoadContext,
+        ) -> impl bevy::tasks::ConditionalSendFuture<
+            Output = std::result::Result<Self::Asset, Self::Error>,
+        > {
+            async {
+                let mut buf = vec![];
+                let _ = reader.read_to_end(&mut buf).await;
+                Ok(GhostAsset)
+            }
+        }
+        fn extensions(&self) -> &[&str] {
+            &["blend", "blend1", "kra", "kra~", "png~"]
+        }
+    }
+    app.init_asset::<GhostAsset>();
+    app.register_asset_loader(GhostLoader);
+    app.load_folder("models");
+    app.load_folder("icons");
 
     app.add_systems(
         Update,
@@ -93,27 +127,47 @@ fn save(world: &mut World) {
         error!("{} cannot be converted to str", manifest_dir.display());
         return;
     };
+    let asset_dir = PathBuf::from_iter([manifest_dir_str, "assets"]);
 
     world.resource_scope(|world, script_defs: Mut<Assets<ScriptAsset>>| {
+        //
+        // Save maps
+        //
         let map_strings = world
             .resource_mut::<Assets<MapDefinition>>()
             .iter_mut()
             .filter_map(|(_, def)| def.serialize(&script_defs).ok())
             .collect::<Vec<_>>();
         for (name, serialized_string) in map_strings {
-            let path =
-                PathBuf::from_iter([manifest_dir_str, "assets", "maps", &format!("{name}.map")]);
+            let path = asset_dir.join(MapDefinition::path(&name));
             info!("Saving map {name} to {}", path.display());
             if let Err(e) = std::fs::write(path, serialized_string) {
                 error!("Saving failed: {e}");
             }
         }
+        //
+        // Save scripts
+        //
         for (_, script) in script_defs.iter() {
-            let path =
-                PathBuf::from_iter([manifest_dir_str, "assets"]).join(PathBuf::from(&script.file));
+            let path = asset_dir.join(PathBuf::from(&script.file));
             info!("Saving script {}", &script.file);
             if let Err(e) = std::fs::write(&path, &script.source) {
                 error!("Failed to save script {}: {e}", path.display());
+            }
+        }
+        //
+        // Save towers
+        //
+        let tower_strings = world
+            .resource_mut::<Assets<TowerDefinition>>()
+            .iter_mut()
+            .filter_map(|(_, def)| def.serialize().ok())
+            .collect::<Vec<_>>();
+        for (name, serialized_string) in tower_strings {
+            let path = asset_dir.join(TowerDefinition::path(&name));
+            info!("Saving tower {name} to {}", path.display());
+            if let Err(e) = std::fs::write(path, serialized_string) {
+                error!("Saving failed: {e}");
             }
         }
     });

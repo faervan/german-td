@@ -22,6 +22,11 @@ pub fn default_plugins<STATE: States + Copy>(
 ) -> impl Plugin {
     move |app: &mut App| {
         app.add_plugins(MeshPickingPlugin);
+        #[cfg(not(feature = "editor"))]
+        app.insert_resource(MeshPickingSettings {
+            require_markers: true,
+            ..Default::default()
+        });
 
         app.add_plugins(PhysicsPlugins::default());
         app.add_plugins(PhysicsPickingPlugin);

@@ -52,10 +52,7 @@ pub(super) fn plugin(app: &mut App) {
         toggle_physics_gizmos.run_if(input_just_pressed(TOGGLE_PHYSICS_GIZMOS_KEY)),
     );
 
-    app.add_systems(
-        Update,
-        spawn_wave.run_if(input_just_pressed(SPAWN_WAVE_KEY)),
-    );
+    app.add_systems(Update, draw_custom_gizmos);
 }
 
 const TOGGLE_INSPECTOR_KEY: KeyCode = KeyCode::F1;
@@ -81,10 +78,39 @@ fn toggle_physics_gizmos(mut gizmo: ResMut<GizmoConfigStore>) {
     }
 }
 
-const SPAWN_WAVE_KEY: KeyCode = KeyCode::KeyK;
+const TOGGLE_CUSTOM_GIZMOS_KEY: KeyCode = KeyCode::F5;
 
-fn spawn_wave(mut wave: ResMut<WaveSpawning>) {
-    if let Some(timer) = wave.cooldown.as_mut() {
-        timer.finish();
+fn draw_custom_gizmos(
+    mut enabled: Local<bool>,
+    input: Res<ButtonInput<KeyCode>>,
+    mut gizmos: Gizmos,
+    spawners: Query<&Spawner>,
+) {
+    if input.just_pressed(TOGGLE_CUSTOM_GIZMOS_KEY) {
+        *enabled = !*enabled;
+    }
+    if !*enabled {
+        return;
+    }
+    for spawner in spawners {
+        gizmos.cube(
+            Transform::from_translation(spawner.position).with_scale(Vec3::splat(5.)),
+            Color::srgb(0., 1., 1.),
+        );
+        let mut prev = None;
+        for waypoint in spawner.waypoints.iter() {
+            gizmos.cube(
+                Transform::from_translation(*waypoint).with_scale(Vec3::splat(5.)),
+                Color::srgba(1., 0., 1., 0.5),
+            );
+            if let Some(prev) = prev.take() {
+                gizmos.line(
+                    prev + Vec3::Y,
+                    *waypoint + Vec3::Y,
+                    Color::srgba(1., 0., 1., 0.8),
+                );
+            }
+            prev = Some(*waypoint);
+        }
     }
 }

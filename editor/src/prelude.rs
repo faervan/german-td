@@ -1,5 +1,8 @@
 pub use german_td_core::prelude::*;
 
+pub use egui::Ui;
+pub use egui::Widget as _;
+
 pub(crate) use crate::State;
 pub(crate) use crate::camera::EditorCamera;
 pub(crate) use crate::cursor::EditorCursor;

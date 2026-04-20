@@ -15,14 +15,17 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
     }
 }
 
-#[derive(Debug, Clone, Copy, Reflect, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, Reflect, Serialize, Deserialize)]
 pub enum DamageType {
+    #[default]
     Single,
-    Area { radius: f32 },
+    Area {
+        radius: f32,
+    },
 }
 
-#[derive(TypePath, Debug, Serialize, Deserialize)]
-struct TowerAsset {
+#[derive(TypePath, Default, Debug, Clone, Serialize, Deserialize)]
+pub struct TowerAsset {
     pub name: String,
     pub gltf: String,
     pub icon: String,
@@ -32,9 +35,11 @@ struct TowerAsset {
     pub range: f32,
     pub cost: usize,
     pub damage_type: DamageType,
+    pub upgrades: Vec<String>,
+    pub starter_tower: bool,
 }
 
-#[derive(Asset, Reflect, Debug)]
+#[derive(Asset, Reflect, Default, Debug)]
 #[reflect(Asset)]
 pub struct TowerDefinition {
     pub name: String,
@@ -48,6 +53,29 @@ pub struct TowerDefinition {
     pub range: f32,
     pub cost: usize,
     pub damage_type: DamageType,
+    pub upgrades: Vec<Handle<TowerDefinition>>,
+    /// Marks this tower as buildable directly on an empty plot. We probably always want this to be
+    /// `false` for upgrade towers.
+    pub starter_tower: bool,
+    #[cfg(feature = "editor")]
+    #[reflect(ignore)]
+    pub asset: TowerAsset,
+}
+
+#[cfg(feature = "editor")]
+impl TowerDefinition {
+    /// TODO! Maybe just make [`TowerAsset`] public for the editor crate instead
+    pub fn path(name: &str) -> PathBuf {
+        TowerAsset::path(name)
+    }
+
+    /// Returns (name, serialized asset) on success
+    pub fn serialize(&mut self) -> Result<(String, String), ron::Error> {
+        use ron::ser::PrettyConfig;
+
+        ron::ser::to_string_pretty(&self.asset, PrettyConfig::default())
+            .map(|s| (self.asset.name.clone(), s))
+    }
 }
 
 impl RonAsset for TowerAsset {
@@ -57,6 +85,8 @@ impl RonAsset for TowerAsset {
 
     async fn load_dependencies(self, context: &mut bevy::asset::LoadContext<'_>) -> Self::Asset {
         TowerDefinition {
+            #[cfg(feature = "editor")]
+            asset: self.clone(),
             name: self.name,
             gltf: context.load(self.gltf),
             scene: Default::default(),
@@ -67,6 +97,12 @@ impl RonAsset for TowerAsset {
             range: self.range,
             cost: self.cost,
             damage_type: self.damage_type,
+            upgrades: self
+                .upgrades
+                .into_iter()
+                .map(|name| context.load(TowerAsset::path(&name)))
+                .collect(),
+            starter_tower: self.starter_tower,
         }
     }
 }

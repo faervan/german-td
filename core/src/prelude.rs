@@ -27,10 +27,13 @@ pub use crate::assets::LibraryInitExt as _;
 pub use crate::assets::all_assets_loaded;
 pub use crate::assets::audio::GameSoundHandles;
 pub use crate::assets::enemies::EnemyDefinition;
+pub use crate::assets::generic_icons::GenericIcons;
 pub use crate::assets::maps::MapDefinition;
 pub use crate::assets::projectile::ProjectileDefinition;
 pub use crate::assets::roto_asset::ScriptAsset;
 pub use crate::assets::towers::DamageType;
+#[cfg(feature = "editor")]
+pub use crate::assets::towers::TowerAsset;
 pub use crate::assets::towers::TowerDefinition;
 
 pub use crate::physics_layers::GameLayer;

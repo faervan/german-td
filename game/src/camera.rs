@@ -29,6 +29,7 @@ fn spawn(mut commands: Commands) {
         Camera3d::default(),
         PrimaryCamera,
         PhysicsPickable,
+        MeshPickingCamera,
         // Must enable the [`DepthPrepass`] to render forward decals
         DepthPrepass,
         // Must disable [`Msaa`] to use decals on WebGPU

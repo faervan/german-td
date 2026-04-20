@@ -22,9 +22,14 @@ fn fragment(
 		var color = textureSample(base_color_texture, base_color_sampler, uv);
 		if color.a == 0. {
 			return vec4f(0.1, 0.1, 0.1, 1.);
-		} else {
+		// Currently we don't make green pixels yellow, because we use green lines to indicate an
+		// upgrade in the tower icons. Later we should probably just add an extra upgrade effect
+		// independent of the individual icons, and then we can drop this check.
+		} else if color.g != 1. {
 			color.r = 0.5 * hover;
 			color.g = 0.5 * hover;
+			return color;
+		} else {
 			return color;
 		}
 	}

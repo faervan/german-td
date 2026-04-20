@@ -1,5 +1,5 @@
-mod animation_target;
-pub use animation_target::*;
+mod gltf_instance_hooks;
+pub use gltf_instance_hooks::*;
 
 pub mod audio;
 

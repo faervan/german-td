@@ -54,6 +54,7 @@ fn setup(mut commands: Commands) {
         Name::new("EditorCamera"),
         EditorCamera,
         Camera3d::default(),
+        MeshPickingCamera,
         Transform::from_xyz(0., 120., 120.).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 }
