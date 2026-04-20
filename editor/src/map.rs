@@ -206,7 +206,7 @@ fn draw_paths(
                     Some(_) => Color::srgba(1., 0., 1., 0.5),
                     None => Color::srgba(1., 0., 1., 0.8),
                 };
-                gizmos.line(w1.translation, w2.translation, color);
+                gizmos.line(w1.translation + Vec3::Y, w2.translation + Vec3::Y, color);
             }
         }
     }

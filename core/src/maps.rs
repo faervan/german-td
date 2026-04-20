@@ -75,11 +75,11 @@ fn spawn_maps(
 /// Spawner per wave
 #[derive(Debug, Component, Reflect)]
 #[reflect(Component)]
-struct Spawner {
-    position: Vec3,
+pub struct Spawner {
+    pub position: Vec3,
     spawns: Vec<(Duration, Handle<EnemyDefinition>)>,
     /// The path that spawned enemies will follow
-    waypoints: Arc<Vec<Vec3>>,
+    pub waypoints: Arc<Vec<Vec3>>,
     elapsed: Duration,
 }
 
