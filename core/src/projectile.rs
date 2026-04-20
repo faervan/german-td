@@ -62,23 +62,35 @@ fn spawn_projectile(
 // TODO: split out despawn to get rid of commands
 fn move_projectile(
     mut commands: Commands,
-    projectile_transforms: Query<(Entity, &mut Transform, &mut LinearVelocity, &Projectile)>,
-    mut targets: Query<(Entity, &Transform, &mut Health, &Enemy), Without<Projectile>>,
+    projectile_transforms: Query<(
+        Entity,
+        &Projectile,
+        &GlobalTransform,
+        &mut Transform,
+        &mut LinearVelocity,
+    )>,
+    mut targets: Query<(Entity, &Enemy, &GlobalTransform, &mut Health), Without<Projectile>>,
     time: Res<Time>,
     audio_handles: Res<GameSoundHandles>,
     mut enemy_killed: MessageWriter<EnemyKilled>,
     spatial_query: SpatialQuery,
 ) {
-    for (entity, mut projectile_transform, mut projectile_velocity, projectile) in
-        projectile_transforms
+    for (
+        entity,
+        projectile,
+        projectile_global_transform,
+        mut projectile_transform,
+        mut projectile_velocity,
+    ) in projectile_transforms
     {
         let mut despawn = false;
         let mut entities_to_damage = vec![];
 
-        if let Ok((target_entity, target_transform, _, _)) = targets.get(projectile.target) {
-            let direction = target_transform.translation - projectile_transform.translation;
+        if let Ok((target_entity, _, target_transform, _)) = targets.get(projectile.target) {
+            let direction =
+                target_transform.translation() - projectile_global_transform.translation();
 
-            projectile_transform.look_at(target_transform.translation, Vec3::Y);
+            projectile_transform.look_at(target_transform.translation(), Vec3::Y);
             projectile_velocity.0 = direction.normalize() * 30.0;
 
             if direction.length() < 1.0 {
@@ -87,8 +99,8 @@ fn move_projectile(
                 match projectile.damage_type {
                     DamageType::Single => entities_to_damage.push(target_entity),
                     DamageType::Area { radius } => {
-                        let shape = Collider::cylinder(radius, 10.0); // TODO: Height?
-                        let shape_position = target_transform.translation;
+                        let shape = Collider::cylinder(radius, 100.0); // TODO: height?
+                        let shape_position = target_transform.translation();
                         let shape_rotation = Quat::default();
 
                         let mut hit_entities = spatial_query.shape_intersections(
@@ -97,6 +109,7 @@ fn move_projectile(
                             shape_rotation,
                             &SpatialQueryFilter::default(),
                         ); // TODO: filter
+                        info!("Hit entities: {:?}", hit_entities);
                         entities_to_damage.append(&mut hit_entities);
                     }
                 }
@@ -106,7 +119,7 @@ fn move_projectile(
         }
 
         for entity in entities_to_damage {
-            if let Ok((_, _, mut health, enemy)) = targets.get_mut(entity) {
+            if let Ok((_, enemy, _, mut health)) = targets.get_mut(entity) {
                 // If the health is negative, this enemy was already killed by another projectile
                 // and is already queued to be despawned
                 if !health.0.is_sign_negative() {

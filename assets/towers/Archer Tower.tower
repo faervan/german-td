@@ -7,6 +7,9 @@
     attack_duration_ms: 1200,
     range: 40.0,
     cost: 15,
+    damage_type: Area(
+        radius: 30.0,
+    ),
     upgrades: [
         "Archer Tower 2",
     ],
