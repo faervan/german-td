@@ -3,10 +3,13 @@
     gltf: "models/towers/FireTower.glb",
     icon: "icons/towers/FireTower.png",
     projectile: "Arrow",
-    damage_factor: 12.0,
+    damage_factor: 6.0,
     attack_duration_ms: 2000,
     range: 35.0,
     cost: 25,
+    damage_type: Area(
+        radius: 20.0,
+    ),
     upgrades: [],
     starter_tower: true,
 )

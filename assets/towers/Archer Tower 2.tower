@@ -7,9 +7,7 @@
     attack_duration_ms: 800,
     range: 45.0,
     cost: 30,
-    damage_type: Area(
-        radius: 40.0,
-    ),
+    damage_type: Single,
     upgrades: [],
     starter_tower: false,
 )

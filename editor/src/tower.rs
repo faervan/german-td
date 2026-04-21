@@ -1,3 +1,5 @@
+use bevy_inspector_egui::reflect_inspector::ui_for_value;
+
 use crate::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
@@ -39,6 +41,9 @@ pub fn tower_tab_ui(world: &mut World, ui: &mut Ui) {
 }
 
 fn tower_edit_ui(world: &mut World, ui: &mut Ui, handle: AssetId<TowerDefinition>) {
+    let type_registry = world.resource::<AppTypeRegistry>().0.clone();
+    let type_registry = type_registry.read();
+
     let mut defs = world.resource_mut::<Assets<TowerDefinition>>();
     let tower_def = defs.get_mut(handle).unwrap();
     let def = &mut tower_def.asset;
@@ -84,7 +89,6 @@ fn tower_edit_ui(world: &mut World, ui: &mut Ui, handle: AssetId<TowerDefinition
             None,
         );
     });
-
     let mut defs = world.resource_mut::<Assets<TowerDefinition>>();
     let tower_def = defs.get_mut(handle).unwrap();
     let def = &mut tower_def.asset;
@@ -112,6 +116,11 @@ fn tower_edit_ui(world: &mut World, ui: &mut Ui, handle: AssetId<TowerDefinition
     ui.horizontal(|ui| {
         ui.label("starter_tower:");
         ui.checkbox(&mut def.starter_tower, "buildable on plot");
+    });
+
+    ui.horizontal(|ui| {
+        ui.label("damage_type:");
+        ui_for_value(&mut def.damage_type, ui, &type_registry);
     });
 
     let mut create_upgrade = false;
