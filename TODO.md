@@ -20,8 +20,14 @@
 - [ ] Add armored enemy
 
 ## Tower Assets
-- [ ] Add bomb/fire tower for AoE attacks
+- [x] Add ~bomb~/fire tower for AoE attacks
     - [ ] Switch archer towers back to single target
+- [ ] Add a `projectile_offset` field that specifies an offset (relative to the tower transform) at which the projectiles will be spawned
+- [ ] Figure out a good mechanism for shooting animations (not just an animation of the tower gltf, but to allow smth like the "creation" of the projectile itself)
+
+## Projectile Assets
+- [ ] Make the `Arrow` projectile actually visible (bigger)
+- [ ] Add fire ball projectile for the fire tower
 
 # Editor
 - [ ] add enemy edit tab
