@@ -19,6 +19,11 @@
 - [ ] Spice up the gold HUD
 - [ ] (Maybe) rework the tower placement/upgrade HUD
 
+### Controls
+- [ ] Add rotation
+- [ ] Add zoom
+- [ ] Add touch drag
+
 ## Enemy Assets
 - [ ] Add armored enemy
 
