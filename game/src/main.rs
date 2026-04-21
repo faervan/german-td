@@ -11,11 +11,17 @@ use crate::prelude::*;
 fn main() {
     let mut app = App::new();
 
+    let present_mode = match std::env::var("WAYLAND_DISPLAY").is_ok() {
+        true => bevy::window::PresentMode::Mailbox,
+        false => bevy::window::PresentMode::AutoVsync,
+    };
+
     // Bevy config
     app.add_plugins(DefaultPlugins.set(asset_plugin()).set(WindowPlugin {
         primary_window: Some(Window {
             title: "German TD".into(),
             name: Some("german_td_game".into()),
+            present_mode,
             ..Default::default()
         }),
         ..Default::default()
