@@ -1,4 +1,5 @@
 use crate::{
+    assets::towers::DamageTypeAsset,
     prelude::*,
     utils::{on_ready_insert_animation_target, on_ready_insert_mesh_picking},
 };
@@ -33,7 +34,7 @@ pub struct Tower {
     attack_timer: Timer,
     projectile: Handle<ProjectileDefinition>,
     damage_factor: f32,
-    damage_type: DamageType,
+    damage_type: DamageTypeAsset,
     definition: Handle<TowerDefinition>,
 }
 
@@ -243,6 +244,7 @@ fn attack_tower_target(
     time: Res<Time>,
     mut projectile_spawner: MessageWriter<SpawnProjectile>,
     mut towers: Query<(&mut Tower, &Transform)>,
+    targets: Query<&Transform, With<Enemy>>,
 ) {
     for (mut tower, transform) in &mut towers {
         if tower.attack_timer.is_finished()
@@ -250,10 +252,20 @@ fn attack_tower_target(
         {
             projectile_spawner.write(SpawnProjectile {
                 position: transform.translation,
-                target,
                 definition: tower.projectile.clone(),
                 damage_factor: tower.damage_factor,
-                damage_type: tower.damage_type,
+                damage_type: match tower.damage_type {
+                    DamageTypeAsset::Single => DamageType::Single { target },
+                    DamageTypeAsset::Area { radius } => {
+                        let Ok(transform) = targets.get(target) else {
+                            continue;
+                        };
+                        DamageType::Area {
+                            radius,
+                            target_pos: transform.translation,
+                        }
+                    }
+                },
             });
         }
 

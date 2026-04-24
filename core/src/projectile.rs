@@ -18,7 +18,6 @@ pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
 #[derive(Debug, Component, Reflect)]
 #[reflect(Component)]
 pub struct Projectile {
-    target: Entity,
     damage: f32,
     damage_type: DamageType,
 }
@@ -26,7 +25,6 @@ pub struct Projectile {
 #[derive(Message, Debug)]
 pub struct SpawnProjectile {
     pub position: Vec3,
-    pub target: Entity,
     pub definition: Handle<ProjectileDefinition>,
     /// A multiplier to the projectiles base damage depending on the tower that shot it
     pub damage_factor: f32,
@@ -46,7 +44,6 @@ fn spawn_projectile(
             Transform::from_translation(spawn.position),
             SceneRoot(def.scene.clone()),
             Projectile {
-                target: spawn.target,
                 damage: def.damage * spawn.damage_factor,
                 damage_type: spawn.damage_type,
             },
@@ -86,21 +83,30 @@ fn move_projectile(
         let mut despawn = false;
         let mut entities_to_damage = vec![];
 
-        if let Ok((target_entity, _, target_transform, _)) = targets.get(projectile.target) {
-            let direction =
-                target_transform.translation() - projectile_global_transform.translation();
+        if let Some(target_position) = match projectile.damage_type {
+            DamageType::Single { target } => {
+                if let Ok((_, _, target_transform, _)) = targets.get(target) {
+                    Some(target_transform.translation())
+                } else {
+                    despawn = true;
+                    None
+                }
+            }
+            DamageType::Area { target_pos, .. } => Some(target_pos),
+        } {
+            let direction = target_position - projectile_global_transform.translation();
 
-            projectile_transform.look_at(target_transform.translation(), Vec3::Y);
+            projectile_transform.look_at(target_position, Vec3::Y);
             projectile_velocity.0 = direction.normalize() * 30.0;
 
             if direction.length() < 1.0 {
                 despawn = true;
 
                 match projectile.damage_type {
-                    DamageType::Single => entities_to_damage.push(target_entity),
-                    DamageType::Area { radius } => {
+                    DamageType::Single { target } => entities_to_damage.push(target),
+                    DamageType::Area { radius, .. } => {
                         let shape = Collider::cylinder(radius, 100.0); // TODO: height?
-                        let shape_position = target_transform.translation();
+                        let shape_position = target_position;
                         let shape_rotation = Quat::default();
 
                         let mut hit_entities = spatial_query.shape_intersections(
@@ -114,8 +120,6 @@ fn move_projectile(
                     }
                 }
             }
-        } else {
-            despawn = true;
         }
 
         for entity in entities_to_damage {
