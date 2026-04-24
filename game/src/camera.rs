@@ -1,7 +1,8 @@
 use bevy::{
     anti_alias::fxaa::Fxaa,
-    core_pipeline::prepass::DepthPrepass,
+    core_pipeline::{prepass::DepthPrepass, tonemapping::Tonemapping},
     input::common_conditions::input_just_pressed,
+    post_process::bloom::Bloom,
     window::{CursorGrabMode, CursorOptions, PrimaryWindow},
 };
 
@@ -36,6 +37,8 @@ fn spawn(mut commands: Commands) {
         Msaa::Off,
         // [`Fxaa`] is a fine alternative to [`Msaa`] for anti-aliasing
         Fxaa::default(),
+        Bloom::default(),
+        Tonemapping::AcesFitted,
         Transform::from_translation(Vec3 {
             x: 0.0,
             y: 100.0,

@@ -1,4 +1,6 @@
 # Game
+- [ ] Add pause state
+- [ ] Add game speed
 ## Visual Effects
 - [ ] Add simple enemy damage effect (red enemy material tint)
 - [ ] Add enemy spawn effect
@@ -35,7 +37,8 @@
 
 ## Projectile Assets
 - [ ] Make the `Arrow` projectile actually visible (bigger)
-- [ ] Add fire ball projectile for the fire tower
+- [x] Add fire ball projectile for the fire tower
+    - [x] Add nice material and trail rotation
 
 # Editor
 - [ ] Add enemy edit tab
