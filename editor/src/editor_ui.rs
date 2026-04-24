@@ -107,6 +107,7 @@ impl UiState {
             vec![
                 EguiWindow::SidebarMenu,
                 EguiWindow::Towers,
+                EguiWindow::Projectiles,
                 EguiWindow::Enemies,
                 EguiWindow::WorldInspector,
             ],
@@ -138,6 +139,7 @@ enum EguiWindow {
     GameView,
     SidebarMenu,
     Towers,
+    Projectiles,
     Enemies,
     WorldInspector,
     Options,
@@ -181,6 +183,9 @@ impl egui_dock::TabViewer for TabViewer<'_> {
             }
             EguiWindow::Towers => {
                 crate::tower::tower_tab_ui(self.world, ui);
+            }
+            EguiWindow::Projectiles => {
+                crate::projectile::projectile_tab_ui(self.world, ui);
             }
             EguiWindow::Enemies => {}
             EguiWindow::WorldInspector => {

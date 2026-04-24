@@ -39,6 +39,7 @@ pub struct TowerAsset {
     pub starter_tower: bool,
 }
 
+#[cfg_attr(feature = "editor", derive(Deref, DerefMut))]
 #[derive(Asset, Reflect, Default, Debug)]
 #[reflect(Asset)]
 pub struct TowerDefinition {
@@ -59,6 +60,7 @@ pub struct TowerDefinition {
     pub starter_tower: bool,
     #[cfg(feature = "editor")]
     #[reflect(ignore)]
+    #[deref]
     pub asset: TowerAsset,
 }
 

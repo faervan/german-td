@@ -55,11 +55,11 @@ fn tower_edit_ui(world: &mut World, ui: &mut Ui, handle: AssetId<TowerDefinition
 
     ui.horizontal(|ui| {
         ui.label("gltf:");
-        select_asset::<Gltf, _, ()>(
+        select_asset::<Gltf, TowerAsset, _, ()>(
             world,
             ui,
             handle,
-            GetNameFrom::Path,
+            GetAssetNameFrom::Path,
             0,
             |asset, _| &mut asset.gltf,
             None,
@@ -67,11 +67,11 @@ fn tower_edit_ui(world: &mut World, ui: &mut Ui, handle: AssetId<TowerDefinition
     });
     ui.horizontal(|ui| {
         ui.label("icon:");
-        select_asset::<Image, _, ()>(
+        select_asset::<Image, TowerAsset, _, ()>(
             world,
             ui,
             handle,
-            GetNameFrom::Path,
+            GetAssetNameFrom::Path,
             0,
             |asset, _| &mut asset.icon,
             None,
@@ -79,11 +79,11 @@ fn tower_edit_ui(world: &mut World, ui: &mut Ui, handle: AssetId<TowerDefinition
     });
     ui.horizontal(|ui| {
         ui.label("projectile:");
-        select_asset::<ProjectileDefinition, _, ()>(
+        select_asset::<ProjectileDefinition, TowerAsset, _, ()>(
             world,
             ui,
             handle,
-            GetNameFrom::FileStem,
+            GetAssetNameFrom::FileStem,
             0,
             |asset, _| &mut asset.projectile,
             None,
@@ -140,11 +140,11 @@ fn tower_edit_ui(world: &mut World, ui: &mut Ui, handle: AssetId<TowerDefinition
                 });
                 let mut remove_index = None;
                 for i in 0..len {
-                    if let Some(i) = select_asset::<TowerDefinition, _, Option<usize>>(
+                    if let Some(i) = select_asset::<TowerDefinition, TowerAsset, _, Option<usize>>(
                         world,
                         ui,
                         handle,
-                        GetNameFrom::T(Box::new(|t| t.asset.name.clone())),
+                        GetAssetNameFrom::T(Box::new(|t| t.asset.name.clone())),
                         i,
                         |asset, id| &mut asset.upgrades[id],
                         Some(&|stash, id| {
@@ -170,74 +170,4 @@ fn tower_edit_ui(world: &mut World, ui: &mut Ui, handle: AssetId<TowerDefinition
     if create_upgrade {
         def.upgrades.push(String::new());
     }
-}
-
-/// Slightly awkward, but it works and it's only the editor, right? :)
-fn select_asset<T, F, STASH>(
-    world: &mut World,
-    ui: &mut Ui,
-    handle: AssetId<TowerDefinition>,
-    name_getter: GetNameFrom<T>,
-    id: usize,
-    def_access: F,
-    remove_callback: Option<&dyn Fn(&mut STASH, usize)>,
-) -> STASH
-where
-    T: Asset,
-    F: Fn(&mut TowerAsset, usize) -> &mut String,
-    STASH: Default,
-{
-    let mut stash = STASH::default();
-
-    ui.vertical(|ui| {
-        let asset_server = world.resource::<AssetServer>();
-        let assets = world
-            .resource::<Assets<T>>()
-            .iter()
-            .filter_map(|(id, t)| match &name_getter {
-                GetNameFrom::Path => asset_server
-                    .get_path(id)
-                    .and_then(|p| p.path().to_str().map(ToString::to_string)),
-                GetNameFrom::FileStem => asset_server.get_path(id).and_then(|p| {
-                    p.path()
-                        .file_stem()
-                        .and_then(|p| p.to_str().map(ToString::to_string))
-                }),
-                GetNameFrom::T(f) => Some(f(t)),
-            })
-            .collect::<Vec<_>>();
-
-        let mut defs = world.resource_mut::<Assets<TowerDefinition>>();
-        let tower_def = defs.get_mut(handle).unwrap();
-        let def = &mut tower_def.asset;
-
-        let mut show_suggestions = false;
-
-        ui.horizontal(|ui| {
-            let edit = ui.text_edit_singleline(def_access(def, id));
-            if edit.has_focus() || edit.lost_focus() {
-                show_suggestions = true;
-            }
-            if let Some(callback) = remove_callback
-                && ui.button("Remove").clicked()
-            {
-                callback(&mut stash, id);
-            }
-        });
-        if show_suggestions {
-            for asset in assets {
-                if ui.button(&asset).clicked() {
-                    *def_access(def, id) = asset;
-                }
-            }
-        }
-    });
-
-    stash
-}
-
-enum GetNameFrom<T> {
-    Path,
-    FileStem,
-    T(Box<dyn Fn(&T) -> String>),
 }
