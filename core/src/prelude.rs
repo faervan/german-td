@@ -31,6 +31,7 @@ pub use crate::assets::generic_icons::GenericIcons;
 pub use crate::assets::maps::MapDefinition;
 pub use crate::assets::projectile::ProjectileDefinition;
 pub use crate::assets::roto_asset::ScriptAsset;
+pub use crate::assets::towers::DamageType;
 #[cfg(feature = "editor")]
 pub use crate::assets::towers::TowerAsset;
 pub use crate::assets::towers::TowerDefinition;

@@ -33,6 +33,7 @@ pub struct Tower {
     attack_timer: Timer,
     projectile: Handle<ProjectileDefinition>,
     damage_factor: f32,
+    damage_type: DamageType,
     definition: Handle<TowerDefinition>,
 }
 
@@ -84,6 +85,7 @@ fn spawn_towers(
                     attack_timer,
                     projectile: def.projectile.clone(),
                     damage_factor: def.damage_factor,
+                    damage_type: def.damage_type,
                     definition: spawn.definition.clone(),
                 },
                 RigidBody::Static,
@@ -251,6 +253,7 @@ fn attack_tower_target(
                 target,
                 definition: tower.projectile.clone(),
                 damage_factor: tower.damage_factor,
+                damage_type: tower.damage_type,
             });
         }
 
