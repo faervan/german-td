@@ -1,5 +1,9 @@
 use bevy::ecs::system::RunSystemOnce as _;
-use german_td_core::{asset_plugin, default_plugins};
+use german_td_core::{
+    asset_plugin,
+    assets::{RonAsset as _, projectile::ProjectileAsset},
+    default_plugins,
+};
 
 mod prelude;
 use prelude::*;
@@ -11,6 +15,8 @@ mod enemy;
 mod focus;
 mod map;
 mod preview;
+mod projectile;
+mod select_asset;
 mod spawn_menu;
 mod tower;
 
@@ -33,6 +39,7 @@ fn main() {
         cursor::plugin,
         editor_ui::plugin,
         tower::plugin,
+        projectile::plugin,
         focus::plugin,
         map::plugin,
         preview::plugin,
@@ -164,8 +171,23 @@ fn save(world: &mut World) {
             .filter_map(|(_, def)| def.serialize().ok())
             .collect::<Vec<_>>();
         for (name, serialized_string) in tower_strings {
-            let path = asset_dir.join(TowerDefinition::path(&name));
+            let path = asset_dir.join(TowerAsset::path(&name));
             info!("Saving tower {name} to {}", path.display());
+            if let Err(e) = std::fs::write(path, serialized_string) {
+                error!("Saving failed: {e}");
+            }
+        }
+        //
+        // Save projectiles
+        //
+        let projectile_strings = world
+            .resource_mut::<Assets<ProjectileDefinition>>()
+            .iter_mut()
+            .filter_map(|(_, def)| def.serialize().ok())
+            .collect::<Vec<_>>();
+        for (name, serialized_string) in projectile_strings {
+            let path = asset_dir.join(ProjectileAsset::path(&name));
+            info!("Saving projectile {name} to {}", path.display());
             if let Err(e) = std::fs::write(path, serialized_string) {
                 error!("Saving failed: {e}");
             }

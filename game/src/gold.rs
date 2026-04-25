@@ -3,7 +3,7 @@ use bevy::color::palettes::css::{GOLD, RED};
 use crate::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
-    app.insert_resource(Gold(20));
+    app.insert_resource(Gold(25));
 
     app.add_systems(OnEnter(AppState::Game), setup_gold_ui);
 

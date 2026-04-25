@@ -15,13 +15,19 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, Reflect, Serialize, Deserialize)]
-pub enum DamageType {
+#[derive(Default, Debug, Clone, Copy, Reflect, Serialize, Deserialize)]
+pub enum DamageTypeAsset {
     #[default]
     Single,
     Area {
         radius: f32,
     },
+}
+
+#[derive(Debug, Reflect, Clone, Copy)]
+pub enum DamageType {
+    Single { target: Entity },
+    Area { radius: f32, target_pos: Vec3 },
 }
 
 #[derive(TypePath, Default, Debug, Clone, Serialize, Deserialize)]
@@ -34,12 +40,13 @@ pub struct TowerAsset {
     pub attack_duration_ms: u64,
     pub range: f32,
     pub cost: usize,
-    pub damage_type: DamageType,
+    pub damage_type: DamageTypeAsset,
     pub upgrades: Vec<String>,
     pub starter_tower: bool,
 }
 
-#[derive(Asset, Reflect, Default, Debug)]
+#[cfg_attr(feature = "editor", derive(Default, Deref, DerefMut))]
+#[derive(Asset, Reflect, Debug)]
 #[reflect(Asset)]
 pub struct TowerDefinition {
     pub name: String,
@@ -52,13 +59,14 @@ pub struct TowerDefinition {
     pub attack_duration: Duration,
     pub range: f32,
     pub cost: usize,
-    pub damage_type: DamageType,
+    pub damage_type: DamageTypeAsset,
     pub upgrades: Vec<Handle<TowerDefinition>>,
     /// Marks this tower as buildable directly on an empty plot. We probably always want this to be
     /// `false` for upgrade towers.
     pub starter_tower: bool,
     #[cfg(feature = "editor")]
     #[reflect(ignore)]
+    #[deref]
     pub asset: TowerAsset,
 }
 

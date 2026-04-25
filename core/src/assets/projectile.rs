@@ -13,15 +13,16 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
     }
 }
 
-#[derive(TypePath, Debug, Serialize, Deserialize)]
-pub(super) struct ProjectileAsset {
-    name: String,
-    gltf: String,
-    icon: String,
-    damage: f32,
+#[derive(TypePath, Default, Debug, Clone, Serialize, Deserialize)]
+pub struct ProjectileAsset {
+    pub name: String,
+    pub gltf: String,
+    pub icon: String,
+    pub damage: f32,
 }
 
-#[derive(Asset, Reflect, Debug)]
+#[cfg_attr(feature = "editor", derive(Deref, DerefMut))]
+#[derive(Asset, Reflect, Default, Debug)]
 #[reflect(Asset)]
 pub struct ProjectileDefinition {
     pub name: String,
@@ -29,6 +30,21 @@ pub struct ProjectileDefinition {
     pub scene: Handle<Scene>,
     pub icon: Handle<Image>,
     pub damage: f32,
+    #[cfg(feature = "editor")]
+    #[reflect(ignore)]
+    #[deref]
+    pub asset: ProjectileAsset,
+}
+
+#[cfg(feature = "editor")]
+impl ProjectileDefinition {
+    /// Returns (name, serialized asset) on success
+    pub fn serialize(&mut self) -> Result<(String, String), ron::Error> {
+        use ron::ser::PrettyConfig;
+
+        ron::ser::to_string_pretty(&self.asset, PrettyConfig::default())
+            .map(|s| (self.asset.name.clone(), s))
+    }
 }
 
 impl RonAsset for ProjectileAsset {
@@ -38,6 +54,8 @@ impl RonAsset for ProjectileAsset {
 
     async fn load_dependencies(self, context: &mut bevy::asset::LoadContext<'_>) -> Self::Asset {
         ProjectileDefinition {
+            #[cfg(feature = "editor")]
+            asset: self.clone(),
             name: self.name,
             gltf: context.load(self.gltf),
             scene: Default::default(),

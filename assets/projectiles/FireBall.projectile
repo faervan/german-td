@@ -1,0 +1,6 @@
+(
+    name: "FireBall",
+    gltf: "models/projectiles/FireBall.glb",
+    icon: "icons/projectiles/Arrow.png",
+    damage: 15.0,
+)

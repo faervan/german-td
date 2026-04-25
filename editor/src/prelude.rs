@@ -9,3 +9,4 @@ pub(crate) use crate::cursor::EditorCursor;
 pub(crate) use crate::focus::FocusableEntity;
 pub(crate) use crate::focus::FocusedEntities;
 pub(crate) use crate::map::{SpawnTowerPlot, SpawnWaypoint};
+pub(crate) use crate::select_asset::{GetAssetNameFrom, select_asset};

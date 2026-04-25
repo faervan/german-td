@@ -1,5 +1,6 @@
 mod camera;
 mod dev_tools;
+mod fire_ball;
 mod game_over;
 mod gold;
 mod prelude;
@@ -11,11 +12,17 @@ use crate::prelude::*;
 fn main() {
     let mut app = App::new();
 
+    let present_mode = match std::env::var("WAYLAND_DISPLAY").is_ok() {
+        true => bevy::window::PresentMode::Mailbox,
+        false => bevy::window::PresentMode::AutoVsync,
+    };
+
     // Bevy config
     app.add_plugins(DefaultPlugins.set(asset_plugin()).set(WindowPlugin {
         primary_window: Some(Window {
             title: "German TD".into(),
             name: Some("german_td_game".into()),
+            present_mode,
             ..Default::default()
         }),
         ..Default::default()
@@ -33,6 +40,7 @@ fn main() {
         game_over::plugin,
         waves::plugin,
         gold::plugin,
+        fire_ball::plugin,
     ));
 
     // Our states
@@ -46,6 +54,9 @@ fn main() {
 
     // Test systems
     app.add_systems(OnEnter(AppState::Game), demo);
+    if std::env::args().any(|arg| arg == "--pause" || arg == "-p") {
+        app.add_systems(OnEnter(AppState::Game), spawn_fire_ball);
+    }
     app.add_systems(OnEnter(AppState::Game), log_loaded_enemies);
     app.add_systems(OnEnter(AppState::Game), log_loaded_maps);
     app.add_systems(OnEnter(AppState::Game), log_loaded_towers);
@@ -120,5 +131,22 @@ fn demo(map_lib: MapLibrary, mut map_spawner: MessageWriter<SpawnMap>) {
     // Map
     map_spawner.write(SpawnMap {
         definition: map_lib.entries["First"].clone(),
+    });
+}
+
+fn spawn_fire_ball(
+    projectile_lib: ProjectileLibrary,
+    mut projectile_spawner: MessageWriter<SpawnProjectile>,
+    mut time: ResMut<Time<Virtual>>,
+) {
+    time.pause();
+    projectile_spawner.write(SpawnProjectile {
+        position: Vec3::Y * 2.,
+        definition: projectile_lib.entries["FireBall"].clone(),
+        damage_factor: 1.,
+        damage_type: DamageType::Area {
+            radius: 10.,
+            target_pos: Vec3::Y * 2. + Vec3::X,
+        },
     });
 }
