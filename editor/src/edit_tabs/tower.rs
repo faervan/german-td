@@ -45,6 +45,14 @@ fn tower_edit_ui(world: &mut World, ui: &mut Ui, handle: AssetId<TowerDefinition
     let type_registry = world.resource::<AppTypeRegistry>().0.clone();
     let type_registry = type_registry.read();
 
+    if ui.button("Preview").clicked() {
+        let mut defs = world.resource_mut::<Assets<TowerDefinition>>();
+        let handle = defs.get_strong_handle(handle).unwrap();
+        world
+            .resource_mut::<NextState<ActorPreview>>()
+            .set(ActorPreview::Tower(handle));
+    }
+
     let mut defs = world.resource_mut::<Assets<TowerDefinition>>();
     let tower_def = defs.get_mut(handle).unwrap();
     let def = &mut tower_def.asset;

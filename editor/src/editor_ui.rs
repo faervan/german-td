@@ -10,7 +10,7 @@ use bevy_inspector_egui::{
 use egui::LayerId;
 use egui_dock::{DockArea, DockState, NodeIndex, Style};
 
-use crate::{and_exit, prelude::*, save};
+use crate::{and_exit, game_view::GameViewState, prelude::*, save};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins(bevy_egui::EguiPlugin::default());
@@ -67,7 +67,7 @@ fn show_ui_system(world: &mut World) {
 fn set_camera_viewport(
     ui_state: Res<UiState>,
     window: Single<&Window, With<PrimaryWindow>>,
-    mut cam: Single<&mut Camera, Without<PrimaryEguiContext>>,
+    mut cam: Single<&mut Camera, With<GameViewCamera>>,
     egui_settings: Single<&EguiContextSettings>,
 ) {
     let scale_factor = window.scale_factor() * egui_settings.scale_factor;
@@ -99,7 +99,7 @@ struct UiState {
 
 impl UiState {
     pub fn new() -> Self {
-        let mut state = DockState::new(vec![EguiWindow::GameView]);
+        let mut state = DockState::new(vec![EguiWindow::MapPreview, EguiWindow::ActorPreview]);
         let tree = state.main_surface_mut();
         let [_game, sidebar_menu] = tree.split_left(
             NodeIndex::root(),
@@ -137,9 +137,10 @@ impl UiState {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum EguiWindow {
-    GameView,
+    MapPreview,
+    ActorPreview,
     SidebarMenu,
     Towers,
     Projectiles,
@@ -160,7 +161,26 @@ impl egui_dock::TabViewer for TabViewer<'_> {
 
     fn ui(&mut self, ui: &mut egui_dock::egui::Ui, window: &mut Self::Tab) {
         match window {
-            EguiWindow::GameView => *self.viewport_rect = ui.clip_rect(),
+            EguiWindow::MapPreview | EguiWindow::ActorPreview => {
+                let game_view_state = self
+                    .world
+                    .resource::<bevy::prelude::State<GameViewState>>()
+                    .get();
+                match (window, game_view_state) {
+                    (EguiWindow::MapPreview, GameViewState::MapPreview)
+                    | (EguiWindow::ActorPreview, GameViewState::ActorPreview) => {}
+                    (EguiWindow::MapPreview, GameViewState::ActorPreview) => self
+                        .world
+                        .resource_mut::<NextState<GameViewState>>()
+                        .set(GameViewState::MapPreview),
+                    (EguiWindow::ActorPreview, GameViewState::MapPreview) => self
+                        .world
+                        .resource_mut::<NextState<GameViewState>>()
+                        .set(GameViewState::ActorPreview),
+                    (_, GameViewState::MapPreview | GameViewState::ActorPreview) => unreachable!(),
+                }
+                *self.viewport_rect = ui.clip_rect()
+            }
             EguiWindow::SidebarMenu => {
                 ui.vertical(|ui| {
                     ui.label("Selected entities:");
@@ -226,6 +246,6 @@ impl egui_dock::TabViewer for TabViewer<'_> {
     }
 
     fn clear_background(&self, window: &Self::Tab) -> bool {
-        !matches!(window, EguiWindow::GameView)
+        !matches!(window, EguiWindow::MapPreview | EguiWindow::ActorPreview)
     }
 }

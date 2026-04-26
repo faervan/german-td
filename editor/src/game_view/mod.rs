@@ -3,7 +3,15 @@ use german_td_core::utils::{grab_cursor, ungrab_cursor};
 
 use crate::prelude::*;
 
+mod actor_preview;
+mod map_preview;
+pub use actor_preview::ActorPreview;
+
 pub(super) fn plugin(app: &mut App) {
+    app.add_plugins((actor_preview::plugin, map_preview::plugin));
+
+    app.add_sub_state::<GameViewState>();
+
     app.add_systems(OnEnter(State::Editor), setup);
     app.add_systems(
         Update,
@@ -19,10 +27,33 @@ pub(super) fn plugin(app: &mut App) {
         Update,
         ungrab_cursor.run_if(input_just_released(MouseButton::Right)),
     );
+
+    app.add_systems(
+        OnEnter(GameViewState::MapPreview),
+        switch_game_view_camera::<true>,
+    );
+    app.add_systems(
+        OnEnter(GameViewState::ActorPreview),
+        switch_game_view_camera::<false>,
+    );
 }
 
 #[derive(Component)]
-pub struct EditorCamera;
+pub struct GameViewCamera;
+
+#[derive(Component)]
+struct MapPreviewCamera;
+
+#[derive(Component)]
+struct ActorPreviewCamera;
+
+#[derive(SubStates, PartialEq, Eq, Debug, Default, Clone, Copy, Hash)]
+#[source(State = State::Editor)]
+pub(crate) enum GameViewState {
+    #[default]
+    MapPreview,
+    ActorPreview,
+}
 
 fn setup(mut commands: Commands) {
     info!(
@@ -51,19 +82,47 @@ fn setup(mut commands: Commands) {
     );
 
     commands.spawn((
-        Name::new("EditorCamera"),
-        EditorCamera,
+        Name::new("GameViewCamera: Map Preview"),
+        GameViewCamera,
+        MapPreviewCamera,
         Camera3d::default(),
         MeshPickingCamera,
         Transform::from_xyz(0., 120., 120.).looking_at(Vec3::ZERO, Vec3::Y),
     ));
+
+    commands.spawn((
+        Name::new("GameViewCamera: Actor Preview"),
+        ActorPreviewCamera,
+        Camera3d::default(),
+        MeshPickingCamera,
+        Transform::from_xyz(0., 50., 2100.).looking_at(Vec3::new(0., 0., 2000.), Vec3::Y),
+    ));
+}
+
+fn switch_game_view_camera<const SET_MAP_PREVIEW: bool>(
+    mut commands: Commands,
+    mut map_camera: Single<(Entity, &mut Camera), With<MapPreviewCamera>>,
+    mut actor_camera: Single<
+        (Entity, &mut Camera),
+        (With<ActorPreviewCamera>, Without<MapPreviewCamera>),
+    >,
+) {
+    if SET_MAP_PREVIEW {
+        commands.entity(map_camera.0).insert(GameViewCamera);
+        commands.entity(actor_camera.0).remove::<GameViewCamera>();
+    } else {
+        commands.entity(actor_camera.0).insert(GameViewCamera);
+        commands.entity(map_camera.0).remove::<GameViewCamera>();
+    }
+    map_camera.1.is_active = SET_MAP_PREVIEW;
+    actor_camera.1.is_active = !SET_MAP_PREVIEW;
 }
 
 const MOVE_SPEED: f32 = 50.;
 fn movement(
     time: Res<Time>,
     input: Res<ButtonInput<KeyCode>>,
-    query: Query<&mut Transform, With<EditorCamera>>,
+    query: Query<&mut Transform, With<GameViewCamera>>,
 ) {
     if input.pressed(KeyCode::ControlLeft)
         || input.pressed(KeyCode::ShiftLeft) && input.pressed(KeyCode::KeyA)
@@ -101,7 +160,7 @@ fn movement(
 
 fn rotation(
     mouse_motion: Res<AccumulatedMouseMotion>,
-    mut query: Query<&mut Transform, With<EditorCamera>>,
+    mut query: Query<&mut Transform, With<GameViewCamera>>,
 ) {
     let Ok(mut camera) = query.single_mut() else {
         return;

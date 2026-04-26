@@ -8,13 +8,12 @@ use german_td_core::{
 mod prelude;
 use prelude::*;
 
-mod camera;
 mod cursor;
 mod edit_tabs;
 mod editor_ui;
 mod focus;
+mod game_view;
 mod map;
-mod preview;
 mod spawn_menu;
 
 fn main() {
@@ -32,13 +31,12 @@ fn main() {
 
     app.add_plugins((
         default_plugins(State::Loading, State::Editor),
-        camera::plugin,
         cursor::plugin,
         editor_ui::plugin,
         edit_tabs::plugin,
+        game_view::plugin,
         focus::plugin,
         map::plugin,
-        preview::plugin,
         spawn_menu::plugin,
     ));
 
