@@ -10,15 +10,12 @@ use prelude::*;
 
 mod camera;
 mod cursor;
+mod edit_tabs;
 mod editor_ui;
-mod enemy;
 mod focus;
 mod map;
 mod preview;
-mod projectile;
-mod select_asset;
 mod spawn_menu;
-mod tower;
 
 fn main() {
     let mut app = App::new();
@@ -38,9 +35,7 @@ fn main() {
         camera::plugin,
         cursor::plugin,
         editor_ui::plugin,
-        tower::plugin,
-        projectile::plugin,
-        enemy::plugin,
+        edit_tabs::plugin,
         focus::plugin,
         map::plugin,
         preview::plugin,

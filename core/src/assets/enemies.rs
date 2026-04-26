@@ -53,6 +53,17 @@ pub struct EnemyDefinition {
     pub asset: EnemyAsset,
 }
 
+#[cfg(feature = "editor")]
+impl EnemyDefinition {
+    /// Returns (name, serialized asset) on success
+    pub fn serialize(&mut self) -> Result<(String, String), ron::Error> {
+        use ron::ser::PrettyConfig;
+
+        ron::ser::to_string_pretty(&self.asset, PrettyConfig::default())
+            .map(|s| (self.asset.name.clone(), s))
+    }
+}
+
 impl RonAsset for EnemyAsset {
     type Asset = EnemyDefinition;
     const DIRECTORY: &str = "enemies";

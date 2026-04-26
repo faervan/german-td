@@ -109,11 +109,14 @@ impl UiState {
                 EguiWindow::Towers,
                 EguiWindow::Projectiles,
                 EguiWindow::Enemies,
-                EguiWindow::WorldInspector,
+                EguiWindow::Maps,
             ],
         );
-        let [_sidebar_menu, _options] =
-            tree.split_below(sidebar_menu, 0.9, vec![EguiWindow::Options]);
+        let [_sidebar_menu, _options] = tree.split_below(
+            sidebar_menu,
+            0.9,
+            vec![EguiWindow::Options, EguiWindow::WorldInspector],
+        );
 
         Self {
             state,
@@ -141,6 +144,7 @@ enum EguiWindow {
     Towers,
     Projectiles,
     Enemies,
+    Maps,
     WorldInspector,
     Options,
 }
@@ -182,13 +186,16 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                 });
             }
             EguiWindow::Towers => {
-                crate::tower::tower_tab_ui(self.world, ui);
+                crate::edit_tabs::tower_tab_ui(self.world, ui);
             }
             EguiWindow::Projectiles => {
-                crate::projectile::projectile_tab_ui(self.world, ui);
+                crate::edit_tabs::projectile_tab_ui(self.world, ui);
             }
             EguiWindow::Enemies => {
-                crate::enemy::enemy_tab_ui(self.world, ui);
+                crate::edit_tabs::enemy_tab_ui(self.world, ui);
+            }
+            EguiWindow::Maps => {
+                crate::edit_tabs::map_tab_ui(self.world, ui);
             }
             EguiWindow::WorldInspector => {
                 ui_for_world(self.world, ui);

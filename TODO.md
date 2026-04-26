@@ -42,7 +42,7 @@
 
 # Editor
 - [x] Add enemy edit tab
-- [ ] Add map edit tab
+- [x] Add map edit tab
 - [ ] Fill missing fields with default when loading assets
 
 # Bugs

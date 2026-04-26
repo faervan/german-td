@@ -20,18 +20,19 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
 }
 
 #[derive(TypePath, Default, Debug, Serialize, Deserialize)]
-struct MapAsset {
-    name: String,
-    gltf: String,
-    icon: String,
+pub struct MapAsset {
+    pub name: String,
+    pub gltf: String,
+    pub icon: String,
     /// A waypoint is a position in 3d space, and the primitive of a path
     waypoints: Vec<Vec3>,
     paths: Vec<EnemyPathAsset>,
     /// How many waves will be spawned
-    waves: usize,
+    pub waves: usize,
     tower_plots: Vec<Vec3>,
 }
 
+#[cfg_attr(feature = "editor", derive(Default, Deref, DerefMut))]
 #[derive(Asset, Reflect, Debug)]
 #[reflect(Asset)]
 pub struct MapDefinition {
@@ -41,8 +42,9 @@ pub struct MapDefinition {
     pub paths: Vec<EnemyPath>,
     /// Positions at which towers can be placed
     pub tower_plots: Vec<Vec3>,
+    #[cfg_attr(feature = "editor", deref)]
     #[reflect(ignore)]
-    asset: MapAsset,
+    pub asset: MapAsset,
 }
 
 impl MapDefinition {

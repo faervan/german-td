@@ -4,6 +4,25 @@ use german_td_core::assets::RonAsset;
 
 use crate::prelude::*;
 
+mod enemy;
+mod map;
+mod projectile;
+mod tower;
+
+pub use enemy::enemy_tab_ui;
+pub use map::map_tab_ui;
+pub use projectile::projectile_tab_ui;
+pub use tower::tower_tab_ui;
+
+pub fn plugin(app: &mut App) {
+    app.add_plugins((
+        tower::plugin,
+        projectile::plugin,
+        enemy::plugin,
+        map::plugin,
+    ));
+}
+
 /// Create a text input modifying a string value of an asset definition specified by the provided
 /// `def_access`.
 /// The bevy assets of type `Target` are queried and the user can select each one to fill out the
