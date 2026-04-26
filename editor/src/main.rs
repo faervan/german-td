@@ -1,7 +1,7 @@
 use bevy::ecs::system::RunSystemOnce as _;
 use german_td_core::{
     asset_plugin,
-    assets::{RonAsset as _, projectile::ProjectileAsset},
+    assets::{RonAsset as _, enemies::EnemyAsset, projectile::ProjectileAsset, towers::TowerAsset},
     default_plugins,
 };
 
@@ -40,6 +40,7 @@ fn main() {
         editor_ui::plugin,
         tower::plugin,
         projectile::plugin,
+        enemy::plugin,
         focus::plugin,
         map::plugin,
         preview::plugin,
@@ -188,6 +189,21 @@ fn save(world: &mut World) {
         for (name, serialized_string) in projectile_strings {
             let path = asset_dir.join(ProjectileAsset::path(&name));
             info!("Saving projectile {name} to {}", path.display());
+            if let Err(e) = std::fs::write(path, serialized_string) {
+                error!("Saving failed: {e}");
+            }
+        }
+        //
+        // Save enemies
+        //
+        let enemy_strings = world
+            .resource_mut::<Assets<EnemyDefinition>>()
+            .iter_mut()
+            .filter_map(|(_, def)| def.serialize().ok())
+            .collect::<Vec<_>>();
+        for (name, serialized_string) in enemy_strings {
+            let path = asset_dir.join(EnemyAsset::path(&name));
+            info!("Saving enemy {name} to {}", path.display());
             if let Err(e) = std::fs::write(path, serialized_string) {
                 error!("Saving failed: {e}");
             }

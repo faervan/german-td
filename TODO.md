@@ -41,7 +41,7 @@
     - [x] Add nice material and trail rotation
 
 # Editor
-- [ ] Add enemy edit tab
+- [x] Add enemy edit tab
 - [ ] Add map edit tab
 - [ ] Fill missing fields with default when loading assets
 

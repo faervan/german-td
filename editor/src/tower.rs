@@ -1,4 +1,5 @@
 use bevy_inspector_egui::reflect_inspector::ui_for_value;
+use german_td_core::assets::towers::TowerAsset;
 
 use crate::prelude::*;
 

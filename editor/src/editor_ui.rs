@@ -187,7 +187,9 @@ impl egui_dock::TabViewer for TabViewer<'_> {
             EguiWindow::Projectiles => {
                 crate::projectile::projectile_tab_ui(self.world, ui);
             }
-            EguiWindow::Enemies => {}
+            EguiWindow::Enemies => {
+                crate::enemy::enemy_tab_ui(self.world, ui);
+            }
             EguiWindow::WorldInspector => {
                 ui_for_world(self.world, ui);
             }

@@ -13,8 +13,8 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
     }
 }
 
-#[derive(TypePath, Debug, Serialize, Deserialize)]
-struct EnemyAsset {
+#[derive(TypePath, Default, Debug, Clone, Serialize, Deserialize)]
+pub struct EnemyAsset {
     pub name: String,
     pub gltf: String,
     pub icon: String,
@@ -29,6 +29,7 @@ struct EnemyAsset {
     pub attack_animation: Option<String>,
 }
 
+#[cfg_attr(feature = "editor", derive(Default, Deref, DerefMut))]
 #[derive(Asset, Reflect, Debug)]
 #[reflect(Asset)]
 pub struct EnemyDefinition {
@@ -46,6 +47,10 @@ pub struct EnemyDefinition {
     pub walk_animation: Option<Result<AnimationNodeIndex, String>>,
     pub attack_animation: Option<Result<AnimationNodeIndex, String>>,
     pub graph: Option<Handle<AnimationGraph>>,
+    #[cfg(feature = "editor")]
+    #[reflect(ignore)]
+    #[deref]
+    pub asset: EnemyAsset,
 }
 
 impl RonAsset for EnemyAsset {
@@ -55,6 +60,8 @@ impl RonAsset for EnemyAsset {
 
     async fn load_dependencies(self, context: &mut bevy::asset::LoadContext<'_>) -> Self::Asset {
         EnemyDefinition {
+            #[cfg(feature = "editor")]
+            asset: self.clone(),
             name: self.name,
             gltf: context.load(self.gltf),
             scene: Default::default(),
