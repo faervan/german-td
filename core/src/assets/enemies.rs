@@ -13,8 +13,10 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
     }
 }
 
-#[derive(TypePath, Debug, Serialize, Deserialize)]
-struct EnemyAsset {
+#[derive(TypePath, Default, Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "editor", serde(default))]
+/// New fields need to be manually added to the enemy editor tab
+pub struct EnemyAsset {
     pub name: String,
     pub gltf: String,
     pub icon: String,
@@ -29,6 +31,7 @@ struct EnemyAsset {
     pub attack_animation: Option<String>,
 }
 
+#[cfg_attr(feature = "editor", derive(Default, Deref, DerefMut))]
 #[derive(Asset, Reflect, Debug)]
 #[reflect(Asset)]
 pub struct EnemyDefinition {
@@ -46,6 +49,21 @@ pub struct EnemyDefinition {
     pub walk_animation: Option<Result<AnimationNodeIndex, String>>,
     pub attack_animation: Option<Result<AnimationNodeIndex, String>>,
     pub graph: Option<Handle<AnimationGraph>>,
+    #[cfg(feature = "editor")]
+    #[reflect(ignore)]
+    #[deref]
+    pub asset: EnemyAsset,
+}
+
+#[cfg(feature = "editor")]
+impl EnemyDefinition {
+    /// Returns (name, serialized asset) on success
+    pub fn serialize(&mut self) -> Result<(String, String), ron::Error> {
+        use ron::ser::PrettyConfig;
+
+        ron::ser::to_string_pretty(&self.asset, PrettyConfig::default())
+            .map(|s| (self.asset.name.clone(), s))
+    }
 }
 
 impl RonAsset for EnemyAsset {
@@ -55,6 +73,8 @@ impl RonAsset for EnemyAsset {
 
     async fn load_dependencies(self, context: &mut bevy::asset::LoadContext<'_>) -> Self::Asset {
         EnemyDefinition {
+            #[cfg(feature = "editor")]
+            asset: self.clone(),
             name: self.name,
             gltf: context.load(self.gltf),
             scene: Default::default(),

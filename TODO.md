@@ -41,9 +41,9 @@
     - [x] Add nice material and trail rotation
 
 # Editor
-- [ ] Add enemy edit tab
-- [ ] Add map edit tab
-- [ ] Fill missing fields with default when loading assets
+- [x] Add enemy edit tab
+- [x] Add map edit tab
+- [x] Fill missing fields with default when loading assets
 
 # Bugs
 - [ ] Fix editor freezing when assets are hot reloaded

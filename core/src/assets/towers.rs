@@ -31,6 +31,8 @@ pub enum DamageType {
 }
 
 #[derive(TypePath, Default, Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "editor", serde(default))]
+/// New fields need to be manually added to the tower editor tab
 pub struct TowerAsset {
     pub name: String,
     pub gltf: String,

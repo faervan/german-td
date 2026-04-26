@@ -73,7 +73,7 @@ const SENSITIVITY: f32 = 0.01;
 fn movement(
     motion: Res<AccumulatedMouseMotion>,
     query: Query<(&mut Transform, &Moving)>,
-    camera: Single<&Transform, (With<EditorCamera>, Without<Moving>)>,
+    camera: Single<&Transform, (With<GameViewCamera>, Without<Moving>)>,
 ) {
     for (mut transform, moving) in query {
         if let Some(axis) = moving.axis {

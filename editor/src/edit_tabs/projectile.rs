@@ -41,6 +41,14 @@ pub fn projectile_tab_ui(world: &mut World, ui: &mut Ui) {
 }
 
 fn projectile_edit_ui(world: &mut World, ui: &mut Ui, handle: AssetId<ProjectileDefinition>) {
+    if ui.button("Preview").clicked() {
+        let mut defs = world.resource_mut::<Assets<ProjectileDefinition>>();
+        let handle = defs.get_strong_handle(handle).unwrap();
+        world
+            .resource_mut::<NextState<ActorPreview>>()
+            .set(ActorPreview::Projectile(handle));
+    }
+
     let mut defs = world.resource_mut::<Assets<ProjectileDefinition>>();
     let projectile_def = defs.get_mut(handle).unwrap();
     let def = &mut projectile_def.asset;
