@@ -14,6 +14,8 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
 }
 
 #[derive(TypePath, Default, Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "editor", serde(default))]
+/// New fields need to be manually added to the projectile editor tab
 pub struct ProjectileAsset {
     pub name: String,
     pub gltf: String,

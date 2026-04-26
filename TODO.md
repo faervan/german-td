@@ -43,7 +43,7 @@
 # Editor
 - [x] Add enemy edit tab
 - [x] Add map edit tab
-- [ ] Fill missing fields with default when loading assets
+- [x] Fill missing fields with default when loading assets
 
 # Bugs
 - [ ] Fix editor freezing when assets are hot reloaded

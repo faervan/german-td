@@ -20,6 +20,8 @@ pub(super) fn plugin<STATE: States + Copy>(loading_state: STATE) -> impl Plugin 
 }
 
 #[derive(TypePath, Default, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "editor", serde(default))]
+/// New fields need to be manually added to the map editor tab
 pub struct MapAsset {
     pub name: String,
     pub gltf: String,
