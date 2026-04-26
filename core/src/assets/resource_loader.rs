@@ -11,7 +11,7 @@ pub fn all_assets_loaded(loader: Res<LoadingAssetHandles>) -> bool {
     loader.folders.is_empty() && loader.loading.is_empty()
 }
 
-type InsertAssetResource = fn(&mut World, UntypedHandle);
+type InsertAssetResource = Box<dyn FnOnce(&mut World, UntypedHandle) + Send + Sync>;
 
 #[derive(Resource, Default)]
 pub struct LoadingAssetHandles {
@@ -24,7 +24,16 @@ pub struct LoadingAssetHandles {
 pub trait AssetResourceLoader {
     fn load_assets<T>(&mut self) -> &mut Self
     where
-        T: Resource + Asset + FromWorld + Send + Sync;
+        T: Resource + Asset + FromWorld;
+
+    /// Load the given type [`T`] as an [`Asset`], initializing it with its [`FromWorld`] impl. Once
+    /// fully loaded, apply the provided transform hook and insert the produced [`Resource`] into
+    /// the world.
+    fn load_assets_with<T, R, F>(&mut self, on_insert_transform_hook: F) -> &mut Self
+    where
+        T: Asset + FromWorld,
+        R: Resource,
+        F: FnOnce(T, &mut World) -> R + Send + Sync + 'static;
 
     fn load_folder(&mut self, path: &'static str) -> &mut Self;
 }
@@ -32,7 +41,16 @@ pub trait AssetResourceLoader {
 impl AssetResourceLoader for App {
     fn load_assets<T>(&mut self) -> &mut Self
     where
-        T: Resource + Asset + FromWorld + Send + Sync,
+        T: Resource + Asset + FromWorld,
+    {
+        self.load_assets_with(|t: T, _world| t)
+    }
+
+    fn load_assets_with<T, R, F>(&mut self, on_insert_transform_hook: F) -> &mut Self
+    where
+        T: Asset + FromWorld,
+        R: Resource,
+        F: FnOnce(T, &mut World) -> R + Send + Sync + 'static,
     {
         self.init_asset::<T>();
 
@@ -40,14 +58,16 @@ impl AssetResourceLoader for App {
         let t = T::from_world(world);
         let handle = world.resource::<AssetServer>().add(t);
         let mut loading_handles = world.resource_mut::<LoadingAssetHandles>();
-        loading_handles
-            .loading
-            .push((handle.untyped(), |world, handle| {
+        loading_handles.loading.push((
+            handle.untyped(),
+            Box::new(move |world, handle| {
                 let mut assets = world.resource_mut::<Assets<T>>();
                 if let Some(value) = assets.remove(handle.id().typed()) {
+                    let value = on_insert_transform_hook(value, world);
                     world.insert_resource(value);
                 }
-            }));
+            }),
+        ));
         self
     }
 
