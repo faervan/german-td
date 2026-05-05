@@ -1,4 +1,5 @@
 use bevy::{
+    asset::{AssetPath, embedded_asset, embedded_path},
     pbr::{ExtendedMaterial, MaterialExtension},
     render::render_resource::AsBindGroup,
     shader::ShaderRef,
@@ -172,12 +173,14 @@ impl Default for EnemyMaterialExtension {
     }
 }
 
+const SHADER_ASSET_PATH: &str = "shaders/enemy.wgsl";
+
 impl MaterialExtension for EnemyMaterialExtension {
     fn fragment_shader() -> ShaderRef {
-        ShaderRef::default()
+        SHADER_ASSET_PATH.into()
     }
 
     fn deferred_fragment_shader() -> ShaderRef {
-        ShaderRef::default()
+        SHADER_ASSET_PATH.into()
     }
 }
