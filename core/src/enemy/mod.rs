@@ -1,5 +1,13 @@
+use bevy::{
+    pbr::{ExtendedMaterial, MaterialExtension},
+    render::render_resource::AsBindGroup,
+    shader::ShaderRef,
+};
+
 use crate::{
-    enemy::controller::EnemyController, prelude::*, utils::on_ready_insert_animation_target,
+    enemy::controller::EnemyController,
+    prelude::*,
+    utils::{on_ready_extend_material, on_ready_insert_animation_target},
 };
 
 mod controller;
@@ -8,6 +16,10 @@ pub(super) fn plugin<STATE: States + Copy>(game_state: STATE) -> impl Plugin {
     move |app: &mut App| {
         app.add_message::<EnemyReachedGoal>();
         app.add_message::<SpawnEnemy>();
+
+        app.add_plugins(MaterialPlugin::<
+            ExtendedMaterial<StandardMaterial, EnemyMaterialExtension>,
+        >::default());
 
         app.add_plugins(controller::plugin(game_state));
 
@@ -73,7 +85,8 @@ fn spawn_enemies(
                 CollisionLayers::new(GameLayer::Enemy, GameLayer::all_bits()),
                 GravityScale(0.),
             ))
-            .observe(on_ready_insert_animation_target);
+            .observe(on_ready_insert_animation_target)
+            .observe(on_ready_extend_material::<StandardMaterial, EnemyMaterialExtension>);
     }
 }
 
@@ -136,5 +149,35 @@ fn enemy_follow_path(
                 );
             }
         }
+    }
+}
+
+#[derive(Asset, AsBindGroup, Reflect, Debug, Clone)]
+struct EnemyMaterialExtension {
+    // We need to ensure that the bindings of the base material and the extension do not conflict,
+    // so we start from binding slot 100, leaving slots 0-99 for the base material.
+    #[uniform(100)]
+    hurtflag: u32,
+}
+
+impl EnemyMaterialExtension {
+    pub const HURT_FLAG: u32 = 0x00_00_00_01;
+}
+
+impl Default for EnemyMaterialExtension {
+    fn default() -> Self {
+        Self {
+            hurtflag: Self::HURT_FLAG,
+        }
+    }
+}
+
+impl MaterialExtension for EnemyMaterialExtension {
+    fn fragment_shader() -> ShaderRef {
+        ShaderRef::default()
+    }
+
+    fn deferred_fragment_shader() -> ShaderRef {
+        ShaderRef::default()
     }
 }
